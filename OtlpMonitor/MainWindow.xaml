@@ -9,8 +9,7 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        ShowInTaskbar="False"
-        Topmost="True">
+        ShowInTaskbar="False">
     <Border Background="#E6101010" CornerRadius="10"
             BorderBrush="#20FFFFFF" BorderThickness="1">
         <StackPanel>
