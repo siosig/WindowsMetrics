@@ -1,9 +1,6 @@
-using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OtlpMonitor.Models.Otlp;
 
@@ -24,10 +21,8 @@ public class OtlpHostedService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var builder = WebApplication.CreateSlimBuilder();
-        builder.Services.Configure<KestrelServerOptions>(o =>
-            o.Listen(IPAddress.Loopback, 14318));
-
         _app = builder.Build();
+        _app.Urls.Add("http://127.0.0.1:14318");
 
         _app.MapPost("/v1/metrics", async (HttpRequest req) =>
         {
@@ -35,6 +30,7 @@ public class OtlpHostedService : BackgroundService
             {
                 using var reader = new System.IO.StreamReader(req.Body);
                 var json = await reader.ReadToEndAsync().ConfigureAwait(false);
+
                 var payload = JsonSerializer.Deserialize<OtlpExportRequest>(json);
                 if (payload != null)
                 {
@@ -44,7 +40,7 @@ public class OtlpHostedService : BackgroundService
             }
             catch
             {
-                // データ欠損時はスキップしてサービスを継続
+                // silently ignore parse errors
             }
             return Results.Ok();
         });

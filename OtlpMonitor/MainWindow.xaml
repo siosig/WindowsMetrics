@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sec="clr-namespace:OtlpMonitor.Views.Sections"
         Title="DIOTLP Monitor"
+        Icon="Assets/app.ico"
         Width="300" SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStyle="None"
