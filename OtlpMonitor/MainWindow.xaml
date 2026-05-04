@@ -4,7 +4,7 @@
         xmlns:sec="clr-namespace:OtlpMonitor.Views.Sections"
         Title="DIOTLP Monitor"
         Icon="Assets/app.ico"
-        Width="300" SizeToContent="Height"
+        Width="300" Height="856"
         ResizeMode="NoResize"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -49,23 +49,20 @@
                 </Grid>
             </Border>
             <!-- セクション -->
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                          MaxHeight="820">
-                <StackPanel Margin="0,2,0,6">
-                    <sec:DateTimeSection/>
-                    <sec:CalendarSection/>
-                    <sec:MemorySection x:Name="MemSection"/>
-                    <sec:ProcessMemorySection/>
-                    <sec:CpuSection x:Name="CpuSec"/>
-                    <sec:ProcessCpuSection/>
-                    <sec:SystemObjectsSection/>
-                    <sec:GpuSection/>
-                    <sec:TemperatureSection/>
-                    <sec:DiskSection/>
-                    <sec:NetworkTotalSection x:Name="NetSec"/>
-                    <sec:NetworkProcessSection/>
-                </StackPanel>
-            </ScrollViewer>
+            <StackPanel Margin="0,2,0,6">
+                <sec:DateTimeSection/>
+                <sec:CalendarSection/>
+                <sec:MemorySection x:Name="MemSection"/>
+                <sec:ProcessMemorySection/>
+                <sec:CpuSection x:Name="CpuSec"/>
+                <sec:ProcessCpuSection/>
+                <sec:SystemObjectsSection/>
+                <sec:GpuSection/>
+                <sec:TemperatureSection/>
+                <sec:DiskSection/>
+                <sec:NetworkTotalSection x:Name="NetSec"/>
+                <sec:NetworkProcessSection/>
+            </StackPanel>
         </StackPanel>
     </Border>
 </Window>

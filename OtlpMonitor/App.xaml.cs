@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,9 +10,27 @@ namespace OtlpMonitor;
 public partial class App : Application
 {
     private IHost? _host;
+    private Mutex? _mutex;
 
     private async void Application_Startup(object sender, StartupEventArgs e)
     {
+        bool isNew;
+        try
+        {
+            _mutex = new Mutex(true, "OtlpMonitor_SingleInstance", out isNew);
+        }
+        catch (AbandonedMutexException)
+        {
+            // 前回強制終了で Abandoned になった場合でも所有権は取得済み
+            isNew = true;
+        }
+        if (!isNew)
+        {
+            _mutex?.Dispose();
+            Shutdown();
+            return;
+        }
+
         var builder = Host.CreateApplicationBuilder();
 
         builder.Services.AddSingleton(Dispatcher);
@@ -34,5 +53,7 @@ public partial class App : Application
             if (_host != null)
                 await _host.StopAsync(TimeSpan.FromSeconds(5));
         }
+        _mutex?.ReleaseMutex();
+        _mutex?.Dispose();
     }
 }
