@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="OtlpMonitor.Tests/OtlpMonitor.Tests.csproj" />
+  <Project Path="OtlpMonitor/OtlpMonitor.csproj" />
+</Solution>

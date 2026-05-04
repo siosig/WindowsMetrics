@@ -1,0 +1,39 @@
+<UserControl x:Class="OtlpMonitor.Views.Sections.NetworkProcessSection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:OtlpMonitor.Views.Converters">
+    <UserControl.Resources>
+        <conv:BytesToReadableConverter x:Key="BytesConv"/>
+    </UserControl.Resources>
+    <Border CornerRadius="8" Background="#08FFFFFF" BorderBrush="#12FFFFFF"
+            BorderThickness="1" Padding="10,8" Margin="6,3">
+        <StackPanel>
+            <TextBlock Text="N: Network" Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11" Margin="0,0,0,2"/>
+            <ItemsControl ItemsSource="{Binding TopNetProc}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       FontFamily="Cascadia Mono" FontSize="10" Foreground="#C5FFFFFF"
+                                       TextTrimming="CharacterEllipsis">
+                                <Run Text="{Binding Name}"/><Run Text=":"/><Run Text="{Binding Pid}" Foreground="#60FFFFFF"/>
+                            </TextBlock>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <TextBlock Text="↑" Foreground="#60CDFF" FontSize="10"/>
+                                <TextBlock Text="{Binding SendBytesPerSec, Converter={StaticResource BytesConv}, FallbackValue=0}"
+                                           FontFamily="Cascadia Mono" FontSize="10" Foreground="White"/>
+                                <TextBlock Text=" ↓" Foreground="#60CDFF" FontSize="10"/>
+                                <TextBlock Text="{Binding RecvBytesPerSec, Converter={StaticResource BytesConv}, FallbackValue=0}"
+                                           FontFamily="Cascadia Mono" FontSize="10" Foreground="White"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</UserControl>

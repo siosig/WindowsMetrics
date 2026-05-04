@@ -1,0 +1,52 @@
+<UserControl x:Class="OtlpMonitor.Views.Sections.MemorySection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:OtlpMonitor.Views.Converters">
+    <UserControl.Resources>
+        <conv:BytesToReadableConverter x:Key="BytesConv"/>
+        <conv:PercentToColorConverter x:Key="PctColor"/>
+    </UserControl.Resources>
+    <Border CornerRadius="8" Background="#08FFFFFF" BorderBrush="#12FFFFFF"
+            BorderThickness="1" Padding="10,8" Margin="6,3">
+        <StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Memory:" Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
+                <Border Grid.Column="1" CornerRadius="3" Background="#15FFFFFF" Height="6" Margin="6,0" VerticalAlignment="Center">
+                    <Border x:Name="MemBar" CornerRadius="3" HorizontalAlignment="Left"
+                            Background="{Binding MemUsagePercent, Converter={StaticResource PctColor}}"/>
+                </Border>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <TextBlock Text="{Binding MemUsedBytes, Converter={StaticResource BytesConv}}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <TextBlock Text=" / " Foreground="#87FFFFFF" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <TextBlock Text="{Binding MemTotalBytes, Converter={StaticResource BytesConv}}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <TextBlock Text=" " Foreground="#87FFFFFF" FontSize="11"/>
+                    <TextBlock Text="{Binding MemUsagePercent, StringFormat={}{0:0}%}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                </StackPanel>
+            </Grid>
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Pagefile:" Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
+                <Border Grid.Column="1" CornerRadius="3" Background="#15FFFFFF" Height="6" Margin="6,0" VerticalAlignment="Center">
+                    <Border x:Name="PageBar" CornerRadius="3" HorizontalAlignment="Left"
+                            Background="{Binding PagefilePercent, Converter={StaticResource PctColor}}"/>
+                </Border>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <TextBlock Text="{Binding PagefileUsedBytes, Converter={StaticResource BytesConv}}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <TextBlock Text=" / " Foreground="#87FFFFFF" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <TextBlock Text="{Binding PagefileTotalBytes, Converter={StaticResource BytesConv}}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                    <TextBlock Text=" " Foreground="#87FFFFFF" FontSize="11"/>
+                    <TextBlock Text="{Binding PagefilePercent, StringFormat={}{0:0}%}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

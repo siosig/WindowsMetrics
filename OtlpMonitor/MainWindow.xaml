@@ -1,0 +1,70 @@
+<Window x:Class="OtlpMonitor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sec="clr-namespace:OtlpMonitor.Views.Sections"
+        Title="DIOTLP Monitor"
+        Width="300" SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True">
+    <Border Background="#E6101010" CornerRadius="10"
+            BorderBrush="#20FFFFFF" BorderThickness="1">
+        <StackPanel>
+            <!-- タイトルバー -->
+            <Border x:Name="TitleBar" Height="28" CornerRadius="10,10,0,0"
+                    Background="#10FFFFFF" MouseLeftButtonDown="TitleBar_MouseDown">
+                <Grid>
+                    <TextBlock Text="DIOTLP Monitor" Foreground="#80FFFFFF"
+                               FontFamily="Segoe UI Variable Text" FontSize="11"
+                               VerticalAlignment="Center" Margin="12,0"/>
+                    <Button x:Name="CloseBtn" Content="✕" Click="CloseBtn_Click"
+                            HorizontalAlignment="Right" Width="28" Height="28"
+                            Foreground="#60FFFFFF" FontSize="10" Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                                    CornerRadius="0,10,0,0">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#40FF4040"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
+            <!-- セクション -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          MaxHeight="820">
+                <StackPanel Margin="0,2,0,6">
+                    <sec:DateTimeSection/>
+                    <sec:CalendarSection/>
+                    <sec:MemorySection x:Name="MemSection"/>
+                    <sec:ProcessMemorySection/>
+                    <sec:CpuSection x:Name="CpuSec"/>
+                    <sec:ProcessCpuSection/>
+                    <sec:SystemObjectsSection/>
+                    <sec:GpuSection/>
+                    <sec:TemperatureSection/>
+                    <sec:DiskSection/>
+                    <sec:NetworkTotalSection x:Name="NetSec"/>
+                    <sec:NetworkProcessSection/>
+                </StackPanel>
+            </ScrollViewer>
+        </StackPanel>
+    </Border>
+</Window>
