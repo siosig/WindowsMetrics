@@ -9,7 +9,7 @@
         <ResourceDictionary>
             <FontFamily x:Key="AppFontFamily">Cascadia Mono</FontFamily>
             <sys:Double x:Key="AppFontSize">11</sys:Double>
-            <sys:Double x:Key="AppFontSizeSmall">7</sys:Double>
+            <sys:Double x:Key="AppFontSizeSmall">9</sys:Double>
             <Style TargetType="TextBlock">
                 <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
                 <Setter Property="FontSize" Value="{DynamicResource AppFontSize}"/>

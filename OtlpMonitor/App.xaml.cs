@@ -48,7 +48,7 @@ public partial class App : Application
         settings.Load();
         Resources["AppFontFamily"] = new FontFamily(settings.FontFamilyName);
         Resources["AppFontSize"] = settings.FontSize;
-        Resources["AppFontSizeSmall"] = Math.Max(6.0, settings.FontSize - 4);
+        Resources["AppFontSizeSmall"] = Math.Max(6.0, settings.FontSize - 2);
 
         await _host.StartAsync();
 

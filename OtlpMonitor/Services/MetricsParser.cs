@@ -8,8 +8,8 @@ public class MetricsParser
 {
     private readonly Dictionary<string, CounterTracker> _counters = new();
     private readonly Dictionary<string, double> _lastValidRate = new();
+    private readonly Dictionary<long, string> _pidToName = new();
     private double _memTotalBytes;
-
 
     // 各ドメインの最後に受け取った値を保持（部分更新用）
     private MemoryInfo _latestMemory = new();
@@ -42,9 +42,15 @@ public class MetricsParser
         if (flat.Any(f => f.Labels.ContainsKey("nic")))
             _latestNetwork = ParseNetwork(flat);
         if (flat.Any(f => f.Name == "windows_process_working_set_bytes"))
+        {
+            UpdatePidNames(flat, "windows_process_working_set_bytes");
             _latestTopMemProc = ParseTopMemoryProcesses(flat);
+        }
         if (flat.Any(f => f.Name == "windows_process_cpu_time_total"))
+        {
+            UpdatePidNames(flat, "windows_process_cpu_time_total");
             _latestTopCpuProc = ParseTopCpuProcesses(flat);
+        }
 
         return new MetricsSnapshot
         {
@@ -178,6 +184,7 @@ public class MetricsParser
         if (gpuPoints.Count == 0) return new GpuInfo { OverallPercent = _latestGpu.OverallPercent };
 
         var byEngine = new Dictionary<string, double>();
+        var byPid    = new Dictionary<string, double>();
         int validRates = 0;
         foreach (var p in gpuPoints)
         {
@@ -190,12 +197,30 @@ public class MetricsParser
             {
                 validRates++;
                 byEngine[engtype] = byEngine.GetValueOrDefault(engtype, 0) + rate.Value;
+                byPid[pid]        = byPid.GetValueOrDefault(pid, 0) + rate.Value;
             }
         }
 
-        if (validRates == 0) return new GpuInfo { OverallPercent = _latestGpu.OverallPercent };
+        if (validRates == 0) return new GpuInfo { OverallPercent = _latestGpu.OverallPercent, Processes = _latestGpu.Processes };
         double overall = Math.Clamp(byEngine.Values.Max() * 100.0, 0, 100);
-        return new GpuInfo { OverallPercent = overall };
+
+        var processes = byPid
+            .OrderByDescending(kv => kv.Value)
+            .Take(5)
+            .Select(kv =>
+            {
+                long pid = long.TryParse(kv.Key, out var p) ? p : 0;
+                string name = _pidToName.GetValueOrDefault(pid, kv.Key);
+                return new GpuProcessSnapshot
+                {
+                    Name         = name,
+                    Pid          = pid,
+                    UsagePercent = Math.Clamp(kv.Value * 100.0, 0, 400),
+                };
+            })
+            .ToArray();
+
+        return new GpuInfo { OverallPercent = overall, Processes = processes };
     }
 
     // --- Temperatures ---
@@ -298,6 +323,19 @@ public class MetricsParser
             });
         }
         return result.OrderByDescending(p => p.CpuPercent).Take(5).ToArray();
+    }
+
+    private void UpdatePidNames(List<FlatMetric> flat, string metricName)
+    {
+        foreach (var f in flat.Where(f => f.Name == metricName))
+        {
+            if (f.Labels.TryGetValue("process", out var name) &&
+                f.Labels.TryGetValue("process_id", out var pidStr) &&
+                long.TryParse(pidStr, out var pid))
+            {
+                _pidToName[pid] = name;
+            }
+        }
     }
 
     // --- Helpers ---

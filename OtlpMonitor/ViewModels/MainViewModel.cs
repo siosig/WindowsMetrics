@@ -63,6 +63,9 @@ public class MainViewModel : INotifyPropertyChanged
     private double _gpuOverall;
     public double GpuOverall { get => _gpuOverall; private set => Set(ref _gpuOverall, value); }
 
+    private GpuProcessSnapshot[] _topGpuProc = [];
+    public GpuProcessSnapshot[] TopGpuProc { get => _topGpuProc; private set => Set(ref _topGpuProc, value); }
+
     // --- Temperatures ---
     private HardwareTemperatures _temperatures = new();
     public HardwareTemperatures Temperatures { get => _temperatures; private set => Set(ref _temperatures, value); }
@@ -150,6 +153,7 @@ public class MainViewModel : INotifyPropertyChanged
         QueueLenProc = s.System.QueueLenProc;
 
         GpuOverall = s.Gpu.OverallPercent;
+        TopGpuProc = s.Gpu.Processes;
         Temperatures = s.Temperatures;
         Disks = s.Disks;
 

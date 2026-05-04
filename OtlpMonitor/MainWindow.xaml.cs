@@ -155,7 +155,7 @@ public partial class MainWindow : Window
     {
         if (_suppressFontEvents || FontSizeCb.SelectedItem is not double selected) return;
         Application.Current.Resources["AppFontSize"] = selected;
-        Application.Current.Resources["AppFontSizeSmall"] = Math.Max(6.0, selected - 4);
+        Application.Current.Resources["AppFontSizeSmall"] = Math.Max(6.0, selected - 2);
         _appSettings.FontSize = selected;
         _appSettings.Save();
     }
