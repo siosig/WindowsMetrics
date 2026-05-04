@@ -377,6 +377,7 @@ public class MetricsParser
     {
         var result = new List<ProcessSnapshot>();
         var groups = flat.Where(f => f.Name == "windows_process_cpu_time_total" && f.IsCumulative)
+                         .Where(f => f.Labels.GetValueOrDefault("process", "") is not ("Idle" or "_Total"))
                          .GroupBy(f => (
                              f.Labels.GetValueOrDefault("process", ""),
                              f.Labels.GetValueOrDefault("process_id", "0")));
