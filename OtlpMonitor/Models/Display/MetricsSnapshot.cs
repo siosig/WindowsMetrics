@@ -93,7 +93,7 @@ public class HardwareTemperatures
 public class DiskInfo
 {
     public string DriveLetter { get; init; } = string.Empty;
-    public double? TemperatureCelsius { get; init; }
+    public double TemperatureCelsius { get; init; }
     public double? IopsRead { get; init; }
     public double? IopsWrite { get; init; }
     public double? UsagePercent { get; init; }

@@ -1,3 +1,4 @@
+using System.Management;
 using OtlpMonitor.Models;
 using OtlpMonitor.Models.Display;
 using OtlpMonitor.Models.Otlp;
@@ -9,7 +10,57 @@ public class MetricsParser
     private readonly Dictionary<string, CounterTracker> _counters = new();
     private readonly Dictionary<string, double> _lastValidRate = new();
     private readonly Dictionary<long, string> _pidToName = new();
+    private readonly Dictionary<string, string> _driveToModel;
+    private readonly Dictionary<string, double> _modelToTemp = new(StringComparer.OrdinalIgnoreCase);
     private double _memTotalBytes;
+
+    public MetricsParser()
+    {
+        _driveToModel = BuildDriveToModelMap();
+    }
+
+    private static Dictionary<string, string> BuildDriveToModelMap()
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var diskModels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            using var q1 = new ManagementObjectSearcher("SELECT DeviceID, Model FROM Win32_DiskDrive");
+            foreach (ManagementObject d in q1.Get())
+                diskModels[(string)d["DeviceID"]] = ((string)d["Model"]).Trim();
+
+            var partToDisk = new Dictionary<string, string>();
+            using var q2 = new ManagementObjectSearcher(
+                "SELECT Antecedent, Dependent FROM Win32_DiskDriveToDiskPartition");
+            foreach (ManagementObject r in q2.Get())
+            {
+                var diskId = ExtractWmiDeviceId((string)r["Antecedent"]).Replace("\\\\", "\\");
+                var partId = ExtractWmiDeviceId((string)r["Dependent"]);
+                if (!string.IsNullOrEmpty(diskId) && !string.IsNullOrEmpty(partId))
+                    partToDisk[partId] = diskId;
+            }
+
+            using var q3 = new ManagementObjectSearcher(
+                "SELECT Antecedent, Dependent FROM Win32_LogicalDiskToPartition");
+            foreach (ManagementObject r in q3.Get())
+            {
+                var partId = ExtractWmiDeviceId((string)r["Antecedent"]);
+                var logDev = ExtractWmiDeviceId((string)r["Dependent"]);
+                var letter = logDev.TrimEnd(':');
+                if (!string.IsNullOrEmpty(letter) && partToDisk.TryGetValue(partId, out var diskId)
+                    && diskModels.TryGetValue(diskId, out var model))
+                    result[letter] = model;
+            }
+        }
+        catch { }
+        return result;
+    }
+
+    private static string ExtractWmiDeviceId(string wmiPath)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(wmiPath, @"DeviceID=""([^""]+)""");
+        return m.Success ? m.Groups[1].Value : string.Empty;
+    }
 
     // 各ドメインの最後に受け取った値を保持（部分更新用）
     private MemoryInfo _latestMemory = new();
@@ -37,6 +88,9 @@ public class MetricsParser
             _latestGpu = ParseGpu(flat);
         if (flat.Any(f => f.Name == "windows_thermalzone_temperature_celsius"))
             _latestTemperatures = ParseTemperatures(flat);
+        if (flat.Any(f => f.Name == "lhm_storage_temperature_celsius"))
+            UpdateDiskTemperatures(flat);
+
         if (flat.Any(f => f.Labels.ContainsKey("volume")))
             _latestDisks = ParseDisks(flat);
         if (flat.Any(f => f.Labels.ContainsKey("nic")))
@@ -240,11 +294,24 @@ public class MetricsParser
 
     // --- Disks ---
 
+    private void UpdateDiskTemperatures(List<FlatMetric> flat)
+    {
+        foreach (var f in flat.Where(f => f.Name == "lhm_storage_temperature_celsius"))
+        {
+            var sensor = f.Labels.GetValueOrDefault("sensorName", "");
+            if (sensor != "Composite Temperature" && sensor != "Temperature") continue;
+            var hw = f.Labels.GetValueOrDefault("hardwareName", "").Trim();
+            if (!string.IsNullOrEmpty(hw))
+                _modelToTemp[hw] = f.Value;
+        }
+    }
+
     private DiskInfo[] ParseDisks(List<FlatMetric> flat)
     {
         var volumes = flat
             .Where(f => f.Labels.ContainsKey("volume"))
             .Select(f => f.Labels["volume"])
+            .Where(v => v.Length == 2 && char.IsLetter(v[0]) && v[1] == ':')
             .Distinct()
             .OrderBy(v => v)
             .ToList();
@@ -252,11 +319,20 @@ public class MetricsParser
         return volumes.Select(vol => new DiskInfo
         {
             DriveLetter      = vol,
+            TemperatureCelsius = LookupDiskTemp(vol),
             ReadBytesPerSec  = GetCounterRate(flat, "windows_logical_disk_read_bytes_total", "volume", vol),
             WriteBytesPerSec = GetCounterRate(flat, "windows_logical_disk_write_bytes_total", "volume", vol),
             IopsRead         = GetCounterRate(flat, "windows_logical_disk_reads_total", "volume", vol),
             IopsWrite        = GetCounterRate(flat, "windows_logical_disk_writes_total", "volume", vol),
         }).ToArray();
+    }
+
+    private double LookupDiskTemp(string volume)
+    {
+        var letter = volume.TrimEnd(':');
+        if (_driveToModel.TryGetValue(letter, out var model) && _modelToTemp.TryGetValue(model, out var temp))
+            return temp;
+        return 0;
     }
 
     // --- Network ---

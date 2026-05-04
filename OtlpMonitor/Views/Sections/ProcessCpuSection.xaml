@@ -19,7 +19,7 @@
                                 <Run Text="{Binding Name}"/><Run Text=":"/><Run Text="{Binding Pid}" Foreground="#60FFFFFF"/>
                             </TextBlock>
                             <TextBlock Grid.Column="1"
-                                       Text="{Binding CpuPercent, StringFormat={}{0:0.0}%, FallbackValue=---}"
+                                       Text="{Binding CpuPercent, StringFormat={}{0:0.0}%, FallbackValue=0.0%}"
                                        FontSize="{DynamicResource AppFontSizeSmall}" Foreground="White"/>
                         </Grid>
                     </DataTemplate>

@@ -6,7 +6,7 @@
         <StackPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="CPU:" Foreground="#C5FFFFFF"/>
-                <TextBlock Text="{Binding CpuTemp, StringFormat={}{0:0.0}°C, FallbackValue=---}" Foreground="White" Margin="4,0,0,0"/>
+                <TextBlock Text="{Binding CpuTemp, StringFormat={}{0:0.0}°C, FallbackValue=0.0°C}" Foreground="White" Margin="4,0,0,0"/>
                 <TextBlock Text="{Binding CpuTotal, StringFormat={}  {0:0.0}%}" Foreground="White"/>
             </StackPanel>
             <Grid Margin="0,2">

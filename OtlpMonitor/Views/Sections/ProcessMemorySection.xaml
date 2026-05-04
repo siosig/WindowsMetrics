@@ -23,7 +23,7 @@
                                 <Run Text="{Binding Name}"/><Run Text=":"/><Run Text="{Binding Pid}" Foreground="#60FFFFFF"/>
                             </TextBlock>
                             <TextBlock Grid.Column="1"
-                                       Text="{Binding MemoryBytes, Converter={StaticResource BytesConv}, FallbackValue=---}"
+                                       Text="{Binding MemoryBytes, Converter={StaticResource BytesConv}, FallbackValue=0 B}"
                                        FontSize="{DynamicResource AppFontSizeSmall}" Foreground="White"/>
                         </Grid>
                     </DataTemplate>
