@@ -121,7 +121,14 @@ public partial class MainWindow : Window
 
     private void CloseBtn_Click(object sender, RoutedEventArgs e)
     {
-        Close();
+        Hide();
+    }
+
+    public void ToggleSettings()
+    {
+        SettingsPanel.Visibility = SettingsPanel.Visibility == Visibility.Visible
+            ? Visibility.Collapsed
+            : Visibility.Visible;
     }
 
     private void CalendarHeader_Toggle(object sender, MouseButtonEventArgs e)

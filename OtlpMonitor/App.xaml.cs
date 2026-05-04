@@ -12,6 +12,7 @@ public partial class App : Application
 {
     private IHost? _host;
     private Mutex? _mutex;
+    private TrayIconService? _trayIcon;
 
     private async void Application_Startup(object sender, StartupEventArgs e)
     {
@@ -52,11 +53,14 @@ public partial class App : Application
 
         await _host.StartAsync();
 
-        _host.Services.GetRequiredService<MainWindow>().Show();
+        var mainWindow = _host.Services.GetRequiredService<MainWindow>();
+        _trayIcon = new TrayIconService(mainWindow);
+        mainWindow.Show();
     }
 
     private async void Application_Exit(object sender, ExitEventArgs e)
     {
+        _trayIcon?.Dispose();
         using (_host)
         {
             if (_host != null)
