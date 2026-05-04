@@ -11,21 +11,27 @@
         <ItemsControl ItemsSource="{Binding Disks}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel Orientation="Horizontal" Margin="0,1">
-                        <TextBlock Text="{Binding DriveLetter}" Foreground="#C5FFFFFF" Width="26"/>
-                        <TextBlock Text="{Binding TemperatureCelsius, StringFormat={}{0:0}°C, FallbackValue=---}"
-                                   Foreground="{Binding TemperatureCelsius, Converter={StaticResource TempColor}}"
-                                   Width="44"/>
-                        <TextBlock Text="{Binding IopsRead, StringFormat={}{0:0.00} MIOPS, FallbackValue=0.00 MIOPS}"
-                                   Foreground="White" Width="86"/>
-                        <TextBlock Text="{Binding UsagePercent, StringFormat={}{0:0}%, FallbackValue=0%}"
-                                   Foreground="White" Width="30"/>
-                        <TextBlock Text=" ↑ " Foreground="#60CDFF"/>
-                        <TextBlock Text="{Binding ReadBytesPerSec, Converter={StaticResource BytesConv}, FallbackValue=0.00}"
-                                   Foreground="White"/>
-                        <TextBlock Text=" / ↓ " Foreground="#60CDFF"/>
-                        <TextBlock Text="{Binding WriteBytesPerSec, Converter={StaticResource BytesConv}, FallbackValue=0.00}"
-                                   Foreground="White"/>
+                    <StackPanel Margin="0,1">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding DriveLetter}" Foreground="#C5FFFFFF" Width="22"/>
+                            <TextBlock Text="{Binding TemperatureCelsius, StringFormat={}{0:0}°C, FallbackValue=---}"
+                                       Foreground="{Binding TemperatureCelsius, Converter={StaticResource TempColor}}"
+                                       Width="38"/>
+                            <TextBlock Text="↑ " Foreground="#60CDFF"/>
+                            <TextBlock Text="{Binding ReadBytesPerSec, Converter={StaticResource BytesConv}, FallbackValue=0.00}"
+                                       Foreground="White" Width="68"/>
+                            <TextBlock Text=" ↓ " Foreground="#60CDFF"/>
+                            <TextBlock Text="{Binding WriteBytesPerSec, Converter={StaticResource BytesConv}, FallbackValue=0.00}"
+                                       Foreground="White"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="22,0,0,0">
+                            <TextBlock Text="{Binding IopsRead, StringFormat={}{0:0.0} IOPS, FallbackValue=0.0 IOPS}"
+                                       Foreground="#A0FFFFFF" Width="72"
+                                       FontSize="{DynamicResource AppFontSizeSmall}"/>
+                            <TextBlock Text="{Binding UsagePercent, StringFormat={}{0:0}%, FallbackValue=0%}"
+                                       Foreground="#A0FFFFFF"
+                                       FontSize="{DynamicResource AppFontSizeSmall}"/>
+                        </StackPanel>
                     </StackPanel>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>

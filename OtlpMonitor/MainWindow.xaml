@@ -5,7 +5,7 @@
         Title="DIOTLP Monitor"
         Icon="Assets/app.ico"
         Width="300" SizeToContent="Height"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
