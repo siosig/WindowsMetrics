@@ -15,7 +15,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     // Sparkline buffers
     public SparklineBuffer CpuSparkline { get; } = new(30);
-    public SparklineBuffer NetworkSparkline { get; } = new(30);
+    public BiDirSparklineBuffer NetworkSparkline { get; } = new(30);
 
     // --- Memory ---
     private double _memUsedBytes;
@@ -160,7 +160,7 @@ public class MainViewModel : INotifyPropertyChanged
         NetSend = s.Network.TotalSendBytesPerSec;
         NetRecv = s.Network.TotalRecvBytesPerSec;
         NetInterface = s.Network.InterfaceName;
-        NetworkSparkline.Push(s.Network.TotalSendBytesPerSec + s.Network.TotalRecvBytesPerSec);
+        NetworkSparkline.Push(s.Network.TotalRecvBytesPerSec, s.Network.TotalSendBytesPerSec);
 
         TopMemProc = s.TopMemoryProcesses;
         TopCpuProc = s.TopCpuProcesses;

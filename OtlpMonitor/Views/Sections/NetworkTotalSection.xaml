@@ -14,15 +14,17 @@
                            Foreground="#C5FFFFFF" Margin="4,0,0,0"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,2">
-                <TextBlock Text="↑ " Foreground="#60CDFF"/>
-                <TextBlock Text="{Binding NetSend, Converter={StaticResource BytesConv}, FallbackValue=0.00}"
-                           Foreground="White"/>
-                <TextBlock Text="  ↓ " Foreground="#60CDFF"/>
+                <TextBlock Text="↓ " Foreground="#60CDFF"/>
                 <TextBlock Text="{Binding NetRecv, Converter={StaticResource BytesConv}, FallbackValue=0.00}"
                            Foreground="White"/>
+                <TextBlock Text="  ↑ " Foreground="#FF6060"/>
+                <TextBlock Text="{Binding NetSend, Converter={StaticResource BytesConv}, FallbackValue=0.00}"
+                           Foreground="#FF9090"/>
             </StackPanel>
-            <Canvas x:Name="NetCanvas" Height="24" Margin="0,2,0,0">
-                <Polyline x:Name="NetLine" Stroke="#8060CDFF" StrokeThickness="1.5" StrokeLineJoin="Round"/>
+            <Canvas x:Name="NetCanvas" Height="30" Margin="0,2,0,0">
+                <Line x:Name="NetZeroLine" Stroke="#25FFFFFF" StrokeThickness="0.5" Y1="15" Y2="15"/>
+                <Polyline x:Name="NetRxLine" Stroke="#8060CDFF" StrokeThickness="1.5" StrokeLineJoin="Round"/>
+                <Polyline x:Name="NetTxLine" Stroke="#80FF6060" StrokeThickness="1.5" StrokeLineJoin="Round"/>
             </Canvas>
         </StackPanel>
     </Border>

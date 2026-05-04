@@ -15,6 +15,10 @@ public partial class NetworkTotalSection : UserControl
     {
         if (DataContext is not ViewModels.MainViewModel vm) return;
         double w = NetCanvas.ActualWidth > 0 ? NetCanvas.ActualWidth : 280;
-        NetLine.Points = vm.NetworkSparkline.ToPoints(w, 24);
+        const double h = 30;
+        NetZeroLine.X2 = w;
+        var (rx, tx) = vm.NetworkSparkline.ToPoints(w, h);
+        NetRxLine.Points = rx;
+        NetTxLine.Points = tx;
     }
 }
