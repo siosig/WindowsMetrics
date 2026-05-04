@@ -330,8 +330,19 @@ public class MetricsParser
     private double LookupDiskTemp(string volume)
     {
         var letter = volume.TrimEnd(':');
-        if (_driveToModel.TryGetValue(letter, out var model) && _modelToTemp.TryGetValue(model, out var temp))
-            return temp;
+        if (!_driveToModel.TryGetValue(letter, out var model)) return 0;
+
+        // 完全一致
+        if (_modelToTemp.TryGetValue(model, out var temp)) return temp;
+
+        // LHM が "HIKVISION HS-SSD-FUTURE 1024G" のようにブランド名を付加する場合のフォールバック
+        foreach (var kv in _modelToTemp)
+        {
+            if (kv.Key.Contains(model, StringComparison.OrdinalIgnoreCase) ||
+                model.Contains(kv.Key, StringComparison.OrdinalIgnoreCase))
+                return kv.Value;
+        }
+
         return 0;
     }
 
