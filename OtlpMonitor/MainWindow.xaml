@@ -4,7 +4,7 @@
         xmlns:sec="clr-namespace:OtlpMonitor.Views.Sections"
         Title="DIOTLP Monitor"
         Icon="Assets/app.ico"
-        Width="300" Height="856"
+        Width="300" SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -21,37 +21,128 @@
                     <TextBlock Text="DIOTLP Monitor" Foreground="#80FFFFFF"
                                FontFamily="Segoe UI Variable Text" FontSize="11"
                                VerticalAlignment="Center" Margin="12,0"/>
-                    <Button x:Name="CloseBtn" Content="✕" Click="CloseBtn_Click"
-                            HorizontalAlignment="Right" Width="28" Height="28"
-                            Foreground="#60FFFFFF" FontSize="10" Cursor="Hand">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="Transparent"/>
-                                <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                                    CornerRadius="0,10,0,0">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="#40FF4040"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </Button.Style>
-                    </Button>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="SettingsBtn" Content="⚙" Click="SettingsBtn_Click"
+                                Width="28" Height="28" Foreground="#60FFFFFF" FontSize="12" Cursor="Hand">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Bd" Background="{TemplateBinding Background}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bd" Property="Background" Value="#20FFFFFF"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button x:Name="CloseBtn" Content="✕" Click="CloseBtn_Click"
+                                Width="28" Height="28" Foreground="#60FFFFFF" FontSize="10" Cursor="Hand">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                                        CornerRadius="0,10,0,0">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bd" Property="Background" Value="#40FF4040"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
                 </Grid>
             </Border>
             <!-- セクション -->
             <StackPanel Margin="0,2,0,6">
-                <sec:DateTimeSection/>
-                <sec:CalendarSection/>
+                <!-- 設定パネル -->
+                <Border x:Name="SettingsPanel" Visibility="Collapsed"
+                        CornerRadius="8" Background="#10FFFFFF" Margin="6,3" Padding="10,8"
+                        BorderBrush="#12FFFFFF" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="フォント設定" Foreground="#C0FFFFFF" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="フォント名" Foreground="#80FFFFFF" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="FontFamilyCb" Grid.Column="1"
+                                      SelectionChanged="FontFamilyCb_SelectionChanged"
+                                      Background="#2A2A2A" Foreground="#E0E0E0" BorderBrush="#505050">
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="ComboBoxItem">
+                                        <Setter Property="Background" Value="#2A2A2A"/>
+                                        <Setter Property="Foreground" Value="#E0E0E0"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsHighlighted" Value="True">
+                                                <Setter Property="Background" Value="#3D6B99"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
+                            </ComboBox>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="サイズ" Foreground="#80FFFFFF" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="FontSizeCb" Grid.Column="1"
+                                      SelectionChanged="FontSizeCb_SelectionChanged"
+                                      Background="#2A2A2A" Foreground="#E0E0E0" BorderBrush="#505050">
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="ComboBoxItem">
+                                        <Setter Property="Background" Value="#2A2A2A"/>
+                                        <Setter Property="Foreground" Value="#E0E0E0"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsHighlighted" Value="True">
+                                                <Setter Property="Background" Value="#3D6B99"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <!-- カレンダー・時刻（折り畳み） -->
+                <Border CornerRadius="8" Background="#08FFFFFF" Margin="6,3"
+                        BorderBrush="#12FFFFFF" BorderThickness="1">
+                    <StackPanel>
+                        <Grid MouseLeftButtonDown="CalendarHeader_Toggle" Cursor="Hand" Margin="10,6">
+                            <TextBlock Text="📅 日時" Foreground="#A0FFFFFF"/>
+                            <TextBlock x:Name="CalendarToggle" Text="▶"
+                                       HorizontalAlignment="Right" Foreground="#60FFFFFF"/>
+                        </Grid>
+                        <StackPanel x:Name="CalendarContent" Visibility="Collapsed">
+                            <sec:DateTimeSection x:Name="DtSection"/>
+                            <sec:CalendarSection/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
                 <sec:MemorySection x:Name="MemSection"/>
                 <sec:ProcessMemorySection/>
                 <sec:CpuSection x:Name="CpuSec"/>

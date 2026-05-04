@@ -8,7 +8,7 @@
     <Border CornerRadius="8" Background="#08FFFFFF" BorderBrush="#12FFFFFF"
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
-            <TextBlock Text="m: Memory" Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11" Margin="0,0,0,2"/>
+            <TextBlock Text="m: Memory" Foreground="#C5FFFFFF" Margin="0,0,0,2"/>
             <ItemsControl ItemsSource="{Binding TopMemProc}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -18,13 +18,13 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
-                                       FontFamily="Cascadia Mono" FontSize="10" Foreground="#C5FFFFFF"
+                                       FontSize="{DynamicResource AppFontSizeSmall}" Foreground="#C5FFFFFF"
                                        TextTrimming="CharacterEllipsis">
                                 <Run Text="{Binding Name}"/><Run Text=":"/><Run Text="{Binding Pid}" Foreground="#60FFFFFF"/>
                             </TextBlock>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding MemoryBytes, Converter={StaticResource BytesConv}, FallbackValue=---}"
-                                       FontFamily="Cascadia Mono" FontSize="10" Foreground="White"/>
+                                       FontSize="{DynamicResource AppFontSizeSmall}" Foreground="White"/>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

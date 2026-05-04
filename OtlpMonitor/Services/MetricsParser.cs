@@ -7,24 +7,57 @@ namespace OtlpMonitor.Services;
 public class MetricsParser
 {
     private readonly Dictionary<string, CounterTracker> _counters = new();
+    private readonly Dictionary<string, double> _lastValidRate = new();
     private double _memTotalBytes;
+
+
+    // 各ドメインの最後に受け取った値を保持（部分更新用）
+    private MemoryInfo _latestMemory = new();
+    private CpuInfo _latestCpu = new();
+    private SystemObjectsInfo _latestSystem = new();
+    private GpuInfo _latestGpu = new();
+    private HardwareTemperatures _latestTemperatures = new();
+    private DiskInfo[] _latestDisks = [];
+    private NetworkInfo _latestNetwork = new();
+    private ProcessSnapshot[] _latestTopMemProc = [];
+    private ProcessSnapshot[] _latestTopCpuProc = [];
 
     public MetricsSnapshot Parse(OtlpExportRequest request)
     {
         var flat = FlattenMetrics(request);
 
+        // 含まれているドメインだけ更新し、他は最後の値を維持する
+        if (flat.Any(f => f.Name.StartsWith("windows_memory_")))
+            _latestMemory = ParseMemory(flat);
+        if (flat.Any(f => f.Name.StartsWith("windows_cpu_") || f.Name == "windows_thermalzone_temperature_celsius"))
+            _latestCpu = ParseCpu(flat);
+        if (flat.Any(f => f.Name.StartsWith("windows_system_") || f.Name == "windows_process_handles"))
+            _latestSystem = ParseSystem(flat);
+        if (flat.Any(f => f.Name == "windows_gpu_engine_time_seconds"))
+            _latestGpu = ParseGpu(flat);
+        if (flat.Any(f => f.Name == "windows_thermalzone_temperature_celsius"))
+            _latestTemperatures = ParseTemperatures(flat);
+        if (flat.Any(f => f.Labels.ContainsKey("volume")))
+            _latestDisks = ParseDisks(flat);
+        if (flat.Any(f => f.Labels.ContainsKey("nic")))
+            _latestNetwork = ParseNetwork(flat);
+        if (flat.Any(f => f.Name == "windows_process_working_set_bytes"))
+            _latestTopMemProc = ParseTopMemoryProcesses(flat);
+        if (flat.Any(f => f.Name == "windows_process_cpu_time_total"))
+            _latestTopCpuProc = ParseTopCpuProcesses(flat);
+
         return new MetricsSnapshot
         {
             ReceivedAt = DateTimeOffset.Now,
-            Memory = ParseMemory(flat),
-            Cpu = ParseCpu(flat),
-            System = ParseSystem(flat),
-            Gpu = ParseGpu(flat),
-            Temperatures = ParseTemperatures(flat),
-            Disks = ParseDisks(flat),
-            Network = ParseNetwork(flat),
-            TopMemoryProcesses = ParseTopMemoryProcesses(flat),
-            TopCpuProcesses = ParseTopCpuProcesses(flat),
+            Memory = _latestMemory,
+            Cpu = _latestCpu,
+            System = _latestSystem,
+            Gpu = _latestGpu,
+            Temperatures = _latestTemperatures,
+            Disks = _latestDisks,
+            Network = _latestNetwork,
+            TopMemoryProcesses = _latestTopMemProc,
+            TopCpuProcesses = _latestTopCpuProc,
             TopNetworkProcesses = [],
         };
     }
@@ -112,14 +145,16 @@ public class MetricsParser
         if (points.Count == 0) return null;
 
         double totalRate = 0;
+        int validCount = 0;
         foreach (var p in points)
         {
             var coreId = p.Labels.GetValueOrDefault("core", "");
             var key = $"{metricName}|core={coreId}|{labelKey}={labelVal}";
             var rate = GetOrCreateTracker(key).UpdateAndGetRate(p.Value, p.TimeNano);
-            if (rate.HasValue) totalRate += rate.Value * 100;
+            if (rate.HasValue) { totalRate += rate.Value * 100; validCount++; }
         }
-        return Math.Clamp(totalRate / Math.Max(points.Count, 1), 0, 100);
+        if (validCount == 0) return null;
+        return Math.Clamp(totalRate / validCount, 0, 100);
     }
 
     // --- System Objects ---
@@ -136,9 +171,31 @@ public class MetricsParser
 
     private GpuInfo ParseGpu(List<FlatMetric> flat)
     {
-        var gpuPoints = flat.Where(f => f.Name == "windows_gpu_engine_time_percent").ToList();
-        double overall = gpuPoints.Count > 0 ? gpuPoints.Average(p => p.Value) : 0;
-        return new GpuInfo { OverallPercent = Math.Clamp(overall, 0, 100) };
+        // windows_gpu_engine_time_seconds: 累積秒数（プロセス起動からの合計GPU時間）
+        // IsCumulative=False でも実態は単調増加カウンター → CounterTracker でレートを計算
+        // sum(rate_i) per engtype = GPU使用率 (sec/sec = fraction)、*100でパーセント
+        var gpuPoints = flat.Where(f => f.Name == "windows_gpu_engine_time_seconds").ToList();
+        if (gpuPoints.Count == 0) return new GpuInfo { OverallPercent = _latestGpu.OverallPercent };
+
+        var byEngine = new Dictionary<string, double>();
+        int validRates = 0;
+        foreach (var p in gpuPoints)
+        {
+            var engtype = p.Labels.GetValueOrDefault("engtype", "");
+            var pid     = p.Labels.GetValueOrDefault("process_id", "");
+            var luid    = p.Labels.GetValueOrDefault("luid", "");
+            var key     = $"gpu|{luid}|{engtype}|{pid}";
+            var rate    = GetOrCreateTracker(key).UpdateAndGetRate(p.Value, p.TimeNano);
+            if (rate.HasValue)
+            {
+                validRates++;
+                byEngine[engtype] = byEngine.GetValueOrDefault(engtype, 0) + rate.Value;
+            }
+        }
+
+        if (validRates == 0) return new GpuInfo { OverallPercent = _latestGpu.OverallPercent };
+        double overall = Math.Clamp(byEngine.Values.Max() * 100.0, 0, 100);
+        return new GpuInfo { OverallPercent = overall };
     }
 
     // --- Temperatures ---
@@ -263,7 +320,13 @@ public class MetricsParser
             (labelKey == null || (f.Labels.TryGetValue(labelKey, out var v) && v == labelVal)));
         if (match is null) return null;
         var key = $"{name}|{labelKey}={labelVal}";
-        return GetOrCreateTracker(key).UpdateAndGetRate(match.Value, match.TimeNano);
+        var rate = GetOrCreateTracker(key).UpdateAndGetRate(match.Value, match.TimeNano);
+        if (rate.HasValue)
+        {
+            _lastValidRate[key] = rate.Value;
+            return rate;
+        }
+        return _lastValidRate.TryGetValue(key, out var cached) ? cached : null;
     }
 
     private CounterTracker GetOrCreateTracker(string key)

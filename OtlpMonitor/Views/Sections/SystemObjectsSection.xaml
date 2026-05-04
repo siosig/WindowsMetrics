@@ -5,16 +5,16 @@
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Objects: P " Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
-                <TextBlock Text="{Binding ProcCount}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
-                <TextBlock Text="  T " Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
-                <TextBlock Text="{Binding ThreadCount, StringFormat={}{0:N0}}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
-                <TextBlock Text="  H" Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
-                <TextBlock Text="{Binding HandleCount, StringFormat={}{0:N0}}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                <TextBlock Text="Objects: P " Foreground="#C5FFFFFF"/>
+                <TextBlock Text="{Binding ProcCount}" Foreground="White"/>
+                <TextBlock Text="  T " Foreground="#C5FFFFFF"/>
+                <TextBlock Text="{Binding ThreadCount, StringFormat={}{0:N0}}" Foreground="White"/>
+                <TextBlock Text="  H" Foreground="#C5FFFFFF"/>
+                <TextBlock Text="{Binding HandleCount, StringFormat={}{0:N0}}" Foreground="White"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                <TextBlock Text="queue len-proc: " Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
-                <TextBlock Text="{Binding QueueLenProc, StringFormat={}{0:0}, FallbackValue=0}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                <TextBlock Text="queue len-proc: " Foreground="#C5FFFFFF"/>
+                <TextBlock Text="{Binding QueueLenProc, StringFormat={}{0:0}, FallbackValue=0}" Foreground="White"/>
             </StackPanel>
         </StackPanel>
     </Border>

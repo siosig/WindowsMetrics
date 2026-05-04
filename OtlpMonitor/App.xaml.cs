@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Windows;
+using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OtlpMonitor.Services;
@@ -34,6 +35,7 @@ public partial class App : Application
         var builder = Host.CreateApplicationBuilder();
 
         builder.Services.AddSingleton(Dispatcher);
+        builder.Services.AddSingleton<AppSettings>();
         builder.Services.AddSingleton<MetricsChannel>();
         builder.Services.AddSingleton<MetricsParser>();
         builder.Services.AddSingleton<MainViewModel>();
@@ -41,6 +43,13 @@ public partial class App : Application
         builder.Services.AddHostedService<OtlpHostedService>();
 
         _host = builder.Build();
+
+        var settings = _host.Services.GetRequiredService<AppSettings>();
+        settings.Load();
+        Resources["AppFontFamily"] = new FontFamily(settings.FontFamilyName);
+        Resources["AppFontSize"] = settings.FontSize;
+        Resources["AppFontSizeSmall"] = Math.Max(6.0, settings.FontSize - 4);
+
         await _host.StartAsync();
 
         _host.Services.GetRequiredService<MainWindow>().Show();

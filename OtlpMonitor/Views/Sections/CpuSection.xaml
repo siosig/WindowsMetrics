@@ -5,9 +5,9 @@
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="CPU:" Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
-                <TextBlock Text="{Binding CpuTemp, StringFormat={}{0:0.0}°C, FallbackValue=---}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11" Margin="4,0,0,0"/>
-                <TextBlock Text="{Binding CpuTotal, StringFormat={}  {0:0.0}%}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                <TextBlock Text="CPU:" Foreground="#C5FFFFFF"/>
+                <TextBlock Text="{Binding CpuTemp, StringFormat={}{0:0.0}°C, FallbackValue=---}" Foreground="White" Margin="4,0,0,0"/>
+                <TextBlock Text="{Binding CpuTotal, StringFormat={}  {0:0.0}%}" Foreground="White"/>
             </StackPanel>
             <Grid Margin="0,2">
                 <Grid.ColumnDefinitions>
@@ -18,24 +18,24 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <TextBlock Text="C1 " Foreground="#C5FFFFFF" FontSize="10"/>
-                    <TextBlock Text="{Binding CpuC1, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontFamily="Cascadia Mono" FontSize="10"/>
+                    <TextBlock Text="C1 " Foreground="#C5FFFFFF" FontSize="{DynamicResource AppFontSizeSmall}"/>
+                    <TextBlock Text="{Binding CpuC1, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontSize="{DynamicResource AppFontSizeSmall}"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBlock Text="C2 " Foreground="#C5FFFFFF" FontSize="10"/>
-                    <TextBlock Text="{Binding CpuC2, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontFamily="Cascadia Mono" FontSize="10"/>
+                    <TextBlock Text="C2 " Foreground="#C5FFFFFF" FontSize="{DynamicResource AppFontSizeSmall}"/>
+                    <TextBlock Text="{Binding CpuC2, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontSize="{DynamicResource AppFontSizeSmall}"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <TextBlock Text="C3 " Foreground="#C5FFFFFF" FontSize="10"/>
-                    <TextBlock Text="{Binding CpuC3, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontFamily="Cascadia Mono" FontSize="10"/>
+                    <TextBlock Text="C3 " Foreground="#C5FFFFFF" FontSize="{DynamicResource AppFontSizeSmall}"/>
+                    <TextBlock Text="{Binding CpuC3, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontSize="{DynamicResource AppFontSizeSmall}"/>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <TextBlock Text="DPC " Foreground="#C5FFFFFF" FontSize="10"/>
-                    <TextBlock Text="{Binding CpuDpc, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontFamily="Cascadia Mono" FontSize="10"/>
+                    <TextBlock Text="DPC " Foreground="#C5FFFFFF" FontSize="{DynamicResource AppFontSizeSmall}"/>
+                    <TextBlock Text="{Binding CpuDpc, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontSize="{DynamicResource AppFontSizeSmall}"/>
                 </StackPanel>
                 <StackPanel Grid.Column="4" Orientation="Horizontal">
-                    <TextBlock Text="Int " Foreground="#C5FFFFFF" FontSize="10"/>
-                    <TextBlock Text="{Binding CpuIntr, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontFamily="Cascadia Mono" FontSize="10"/>
+                    <TextBlock Text="Int " Foreground="#C5FFFFFF" FontSize="{DynamicResource AppFontSizeSmall}"/>
+                    <TextBlock Text="{Binding CpuIntr, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontSize="{DynamicResource AppFontSizeSmall}"/>
                 </StackPanel>
             </Grid>
             <Canvas x:Name="CpuCanvas" Height="24" Margin="0,2,0,0">

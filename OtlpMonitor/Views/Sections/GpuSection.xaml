@@ -5,8 +5,8 @@
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="GPU0N: " Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
-                <TextBlock Text="{Binding GpuOverall, StringFormat={}{0:0.00}%}" Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                <TextBlock Text="GPU0N: " Foreground="#C5FFFFFF"/>
+                <TextBlock Text="{Binding GpuOverall, StringFormat={}{0:0.00}%}" Foreground="White"/>
             </StackPanel>
         </StackPanel>
     </Border>

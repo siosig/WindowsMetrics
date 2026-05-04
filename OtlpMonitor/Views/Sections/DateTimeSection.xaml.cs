@@ -16,6 +16,9 @@ public partial class DateTimeSection : UserControl
         UpdateTime();
     }
 
+    public void StartTimer() => _timer.Start();
+    public void StopTimer() => _timer.Stop();
+
     private void UpdateTime()
     {
         var now = DateTime.Now;

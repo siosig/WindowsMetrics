@@ -9,17 +9,17 @@
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Net:" Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
+                <TextBlock Text="Net:" Foreground="#C5FFFFFF"/>
                 <TextBlock Text="{Binding NetInterface, FallbackValue=---}"
-                           Foreground="#C5FFFFFF" FontFamily="Cascadia Mono" FontSize="11" Margin="4,0,0,0"/>
+                           Foreground="#C5FFFFFF" Margin="4,0,0,0"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,2">
-                <TextBlock Text="↑ " Foreground="#60CDFF" FontSize="11"/>
+                <TextBlock Text="↑ " Foreground="#60CDFF"/>
                 <TextBlock Text="{Binding NetSend, Converter={StaticResource BytesConv}, FallbackValue=0.00}"
-                           Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
-                <TextBlock Text="  ↓ " Foreground="#60CDFF" FontSize="11"/>
+                           Foreground="White"/>
+                <TextBlock Text="  ↓ " Foreground="#60CDFF"/>
                 <TextBlock Text="{Binding NetRecv, Converter={StaticResource BytesConv}, FallbackValue=0.00}"
-                           Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                           Foreground="White"/>
             </StackPanel>
             <Canvas x:Name="NetCanvas" Height="24" Margin="0,2,0,0">
                 <Polyline x:Name="NetLine" Stroke="#8060CDFF" StrokeThickness="1.5" StrokeLineJoin="Round"/>

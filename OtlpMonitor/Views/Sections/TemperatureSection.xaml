@@ -9,42 +9,42 @@
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Mother: " Foreground="#C5FFFFFF" FontFamily="Segoe UI Variable Text" FontSize="11"/>
-                <TextBlock Text="SYS " Foreground="#C5FFFFFF" FontSize="11"/>
+                <TextBlock Text="Mother: " Foreground="#C5FFFFFF"/>
+                <TextBlock Text="SYS " Foreground="#C5FFFFFF"/>
                 <TextBlock Text="{Binding Temperatures.SysCelsius, StringFormat={}{0:0}°C, FallbackValue=---}"
                            Foreground="{Binding Temperatures.SysCelsius, Converter={StaticResource TempColor}}"
-                           FontFamily="Cascadia Mono" FontSize="11"/>
-                <TextBlock Text="  CPU " Foreground="#C5FFFFFF" FontSize="11"/>
+                          />
+                <TextBlock Text="  CPU " Foreground="#C5FFFFFF"/>
                 <TextBlock Text="{Binding Temperatures.CpuPackageCelsius, StringFormat={}{0:0}°C, FallbackValue=---}"
                            Foreground="{Binding Temperatures.CpuPackageCelsius, Converter={StaticResource TempColor}}"
-                           FontFamily="Cascadia Mono" FontSize="11"/>
-                <TextBlock Text="  MOS " Foreground="#C5FFFFFF" FontSize="11"/>
+                          />
+                <TextBlock Text="  MOS " Foreground="#C5FFFFFF"/>
                 <TextBlock Text="{Binding Temperatures.MosCelsius, StringFormat={}{0:0}°C, FallbackValue=---}"
                            Foreground="{Binding Temperatures.MosCelsius, Converter={StaticResource TempColor}}"
-                           FontFamily="Cascadia Mono" FontSize="11"/>
+                          />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,2">
-                <TextBlock Text="PCH " Foreground="#C5FFFFFF" FontSize="11"/>
+                <TextBlock Text="PCH " Foreground="#C5FFFFFF"/>
                 <TextBlock Text="{Binding Temperatures.PchCelsius, StringFormat={}{0:0}°C, FallbackValue=---}"
                            Foreground="{Binding Temperatures.PchCelsius, Converter={StaticResource TempColor}}"
-                           FontFamily="Cascadia Mono" FontSize="11"/>
-                <TextBlock Text="  Sock " Foreground="#C5FFFFFF" FontSize="11"/>
+                          />
+                <TextBlock Text="  Sock " Foreground="#C5FFFFFF"/>
                 <TextBlock Text="{Binding Temperatures.SockCelsius, StringFormat={}{0:0}°C, FallbackValue=---}"
                            Foreground="{Binding Temperatures.SockCelsius, Converter={StaticResource TempColor}}"
-                           FontFamily="Cascadia Mono" FontSize="11"/>
-                <TextBlock Text="  PCIe " Foreground="#C5FFFFFF" FontSize="11"/>
+                          />
+                <TextBlock Text="  PCIe " Foreground="#C5FFFFFF"/>
                 <TextBlock Text="{Binding Temperatures.PcieCelsius, StringFormat={}{0:0}°C, FallbackValue=---}"
                            Foreground="{Binding Temperatures.PcieCelsius, Converter={StaticResource TempColor}}"
-                           FontFamily="Cascadia Mono" FontSize="11"/>
+                          />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,2">
-                <TextBlock Text="M2 " Foreground="#C5FFFFFF" FontSize="11"/>
+                <TextBlock Text="M2 " Foreground="#C5FFFFFF"/>
                 <TextBlock Text="{Binding Temperatures.M2Celsius, StringFormat={}{0:0}°C, FallbackValue=---}"
                            Foreground="{Binding Temperatures.M2Celsius, Converter={StaticResource TempColor}}"
-                           FontFamily="Cascadia Mono" FontSize="11"/>
-                <TextBlock Text="  Fan1 " Foreground="#C5FFFFFF" FontSize="11"/>
+                          />
+                <TextBlock Text="  Fan1 " Foreground="#C5FFFFFF"/>
                 <TextBlock Text="{Binding Temperatures.FanRpm, StringFormat={}{0:0}rpm, FallbackValue=---}"
-                           Foreground="White" FontFamily="Cascadia Mono" FontSize="11"/>
+                           Foreground="White"/>
             </StackPanel>
         </StackPanel>
     </Border>

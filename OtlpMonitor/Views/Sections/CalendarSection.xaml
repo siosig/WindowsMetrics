@@ -11,8 +11,8 @@
                         Background="Transparent" BorderThickness="0"
                         Foreground="#80FFFFFF" FontSize="10" Cursor="Hand"/>
                 <TextBlock x:Name="MonthLabel" HorizontalAlignment="Center"
-                           VerticalAlignment="Center" FontFamily="Segoe UI Variable Text"
-                           FontSize="11" Foreground="White"/>
+                           VerticalAlignment="Center"
+                           Foreground="White"/>
                 <Button x:Name="NextBtn" Content="▶" Click="NextBtn_Click"
                         HorizontalAlignment="Right" Width="20" Height="18"
                         Background="Transparent" BorderThickness="0"

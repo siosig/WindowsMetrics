@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using OtlpMonitor.Services;
 using OtlpMonitor.ViewModels;
 
@@ -7,9 +8,12 @@ namespace OtlpMonitor;
 
 public partial class MainWindow : Window
 {
-    public MainWindow(MainViewModel vm)
+    private readonly AppSettings _appSettings;
+
+    public MainWindow(MainViewModel vm, AppSettings appSettings)
     {
         InitializeComponent();
+        _appSettings = appSettings;
         DataContext = vm;
         vm.SnapshotApplied += () =>
         {
@@ -38,6 +42,34 @@ public partial class MainWindow : Window
             Left = screen.Right - Width - 16;
             Top = screen.Top + 16;
         }
+
+        // カレンダー折り畳み状態を復元
+        if (_appSettings.IsCalendarExpanded)
+        {
+            CalendarContent.Visibility = Visibility.Visible;
+            CalendarToggle.Text = "▼";
+            DtSection.StartTimer();
+        }
+        else
+        {
+            CalendarContent.Visibility = Visibility.Collapsed;
+            CalendarToggle.Text = "▶";
+            DtSection.StopTimer();
+        }
+
+        // フォント設定コンボボックスを初期化
+        _suppressFontEvents = true;
+        var families = System.Windows.Media.Fonts.SystemFontFamilies
+            .Select(f => f.Source)
+            .OrderBy(n => n)
+            .ToList();
+        FontFamilyCb.ItemsSource = families;
+        FontFamilyCb.SelectedItem = _appSettings.FontFamilyName;
+
+        var sizes = Enumerable.Range(8, 17).Select(i => (double)i).ToList();
+        FontSizeCb.ItemsSource = sizes;
+        FontSizeCb.SelectedItem = Math.Round(_appSettings.FontSize);
+        _suppressFontEvents = false;
     }
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
@@ -54,5 +86,41 @@ public partial class MainWindow : Window
     private void CloseBtn_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void CalendarHeader_Toggle(object sender, MouseButtonEventArgs e)
+    {
+        bool expanding = CalendarContent.Visibility != Visibility.Visible;
+        CalendarContent.Visibility = expanding ? Visibility.Visible : Visibility.Collapsed;
+        CalendarToggle.Text = expanding ? "▼" : "▶";
+        if (expanding) DtSection.StartTimer(); else DtSection.StopTimer();
+        _appSettings.IsCalendarExpanded = expanding;
+        _appSettings.Save();
+    }
+
+    private void SettingsBtn_Click(object sender, RoutedEventArgs e)
+    {
+        SettingsPanel.Visibility = SettingsPanel.Visibility == Visibility.Visible
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+    }
+
+    private bool _suppressFontEvents;
+
+    private void FontFamilyCb_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_suppressFontEvents || FontFamilyCb.SelectedItem is not string selected) return;
+        Application.Current.Resources["AppFontFamily"] = new FontFamily(selected);
+        _appSettings.FontFamilyName = selected;
+        _appSettings.Save();
+    }
+
+    private void FontSizeCb_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_suppressFontEvents || FontSizeCb.SelectedItem is not double selected) return;
+        Application.Current.Resources["AppFontSize"] = selected;
+        Application.Current.Resources["AppFontSizeSmall"] = Math.Max(6.0, selected - 4);
+        _appSettings.FontSize = selected;
+        _appSettings.Save();
     }
 }

@@ -4,9 +4,9 @@
     <Border CornerRadius="8" Background="#08FFFFFF" BorderBrush="#12FFFFFF"
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
-            <TextBlock x:Name="LocalTime" FontFamily="Cascadia Mono" FontSize="12"
+            <TextBlock x:Name="LocalTime" FontSize="12"
                        Foreground="White" TextAlignment="Center"/>
-            <TextBlock x:Name="UtcTime" FontFamily="Cascadia Mono" FontSize="10"
+            <TextBlock x:Name="UtcTime" FontSize="10"
                        Foreground="#80FFFFFF" TextAlignment="Center" Margin="0,1,0,0"/>
         </StackPanel>
     </Border>
