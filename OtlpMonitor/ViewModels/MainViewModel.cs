@@ -39,6 +39,11 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _memIsWarning;
     public bool MemIsWarning { get => _memIsWarning; private set => Set(ref _memIsWarning, value); }
 
+    private double? _memMinTempC, _memMaxTempC, _memAvgTempC;
+    public double? MemMinTempC { get => _memMinTempC; private set => Set(ref _memMinTempC, value); }
+    public double? MemMaxTempC { get => _memMaxTempC; private set => Set(ref _memMaxTempC, value); }
+    public double? MemAvgTempC { get => _memAvgTempC; private set => Set(ref _memAvgTempC, value); }
+
     // --- CPU ---
     private double? _cpuTemp;
     public double? CpuTemp { get => _cpuTemp; private set => Set(ref _cpuTemp, value); }
@@ -137,6 +142,9 @@ public class MainViewModel : INotifyPropertyChanged
         PagefileUsedBytes = s.Memory.PagefileUsedBytes;
         PagefilePercent = s.Memory.PagefilePercent;
         MemIsWarning = s.Memory.IsWarning;
+        MemMinTempC = s.Memory.MinTempC;
+        MemMaxTempC = s.Memory.MaxTempC;
+        MemAvgTempC = s.Memory.AvgTempC;
 
         CpuTemp = s.Cpu.TemperatureCelsius;
         CpuC1 = s.Cpu.C1Percent;

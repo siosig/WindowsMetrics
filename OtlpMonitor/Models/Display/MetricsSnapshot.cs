@@ -22,6 +22,11 @@ public class MemoryInfo
     public double PagefileTotalBytes { get; init; }
     public double PagefileUsedBytes { get; init; }
 
+    public double? MinTempC { get; init; }
+    public double? MaxTempC { get; init; }
+    public double? AvgTempC { get; init; }
+    public int TempSampleCount { get; init; }
+
     public double UsedBytes => TotalBytes - AvailableBytes;
     public double UsagePercent => TotalBytes > 0 ? Math.Clamp(UsedBytes / TotalBytes * 100, 0, 100) : 0;
     public double PagefilePercent => PagefileTotalBytes > 0 ? Math.Clamp(PagefileUsedBytes / PagefileTotalBytes * 100, 0, 100) : 0;

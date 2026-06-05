@@ -12,6 +12,7 @@ public class MetricsParser
     private readonly Dictionary<long, string> _pidToName = new();
     private readonly Dictionary<string, string> _driveToModel;
     private readonly Dictionary<string, double> _modelToTemp = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, double> _dimmIdToTempC = new(StringComparer.OrdinalIgnoreCase);
     private double _memTotalBytes;
 
     public MetricsParser()
@@ -78,7 +79,9 @@ public class MetricsParser
         var flat = FlattenMetrics(request);
 
         // 含まれているドメインだけ更新し、他は最後の値を維持する
-        if (flat.Any(f => f.Name.StartsWith("windows_memory_")))
+        if (flat.Any(f => f.Name == "lhm_memory_temperature_celsius"))
+            UpdateDimmTemperatures(flat);
+        if (flat.Any(f => f.Name.StartsWith("windows_memory_") || f.Name == "lhm_memory_temperature_celsius"))
             _latestMemory = ParseMemory(flat);
         if (flat.Any(f => f.Name.StartsWith("windows_cpu_") || f.Name == "windows_thermalzone_temperature_celsius"))
             _latestCpu = ParseCpu(flat);
@@ -160,13 +163,50 @@ public class MetricsParser
         if (total > 0) _memTotalBytes = total;
         if (_memTotalBytes <= 0) _memTotalBytes = 1;
 
+        // windows_memory_* が無く lhm_memory_temperature_celsius のみのバッチでは、
+        // 既存の最新値を引き継いで温度フィールドだけ差し替える。
+        bool hasWindowsMem = flat.Any(f => f.Name.StartsWith("windows_memory_"));
+        double availableBytes = hasWindowsMem ? available : _latestMemory.AvailableBytes;
+        double totalBytes = hasWindowsMem ? _memTotalBytes : (_latestMemory.TotalBytes > 0 ? _latestMemory.TotalBytes : _memTotalBytes);
+        double pagefileTotal = hasWindowsMem ? commitLimit : _latestMemory.PagefileTotalBytes;
+        double pagefileUsed = hasWindowsMem ? Math.Max(0, committed) : _latestMemory.PagefileUsedBytes;
+
+        double? minT = null, maxT = null, avgT = null;
+        int count = _dimmIdToTempC.Count;
+        if (count > 0)
+        {
+            var values = _dimmIdToTempC.Values;
+            minT = values.Min();
+            maxT = values.Max();
+            avgT = values.Average();
+        }
+
         return new MemoryInfo
         {
-            AvailableBytes = available,
-            TotalBytes = _memTotalBytes,
-            PagefileTotalBytes = commitLimit,
-            PagefileUsedBytes = Math.Max(0, committed),
+            AvailableBytes = availableBytes,
+            TotalBytes = totalBytes,
+            PagefileTotalBytes = pagefileTotal,
+            PagefileUsedBytes = pagefileUsed,
+            MinTempC = minT,
+            MaxTempC = maxT,
+            AvgTempC = avgT,
+            TempSampleCount = count,
         };
+    }
+
+    private void UpdateDimmTemperatures(List<FlatMetric> flat)
+    {
+        // 「過去値で穴埋めしない」ため、当バッチに DIMM 温度サンプルが含まれていれば
+        // dict をクリアしてから当バッチ分のみを入れ直す。
+        _dimmIdToTempC.Clear();
+        foreach (var f in flat.Where(f => f.Name == "lhm_memory_temperature_celsius"))
+        {
+            var key = f.Labels.GetValueOrDefault("hardwareId", "");
+            if (string.IsNullOrEmpty(key))
+                key = f.Labels.GetValueOrDefault("sensorName", "");
+            if (string.IsNullOrEmpty(key)) continue;
+            _dimmIdToTempC[key] = f.Value;
+        }
     }
 
     // --- CPU ---

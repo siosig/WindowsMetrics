@@ -4,11 +4,23 @@
              xmlns:conv="clr-namespace:OtlpMonitor.Views.Converters">
     <UserControl.Resources>
         <conv:BytesToReadableConverter x:Key="BytesConv"/>
+        <conv:TempToColorConverter x:Key="TempColor"/>
     </UserControl.Resources>
     <Border CornerRadius="8" Background="#08FFFFFF" BorderBrush="#12FFFFFF"
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
-            <TextBlock Text="m: Memory" Foreground="#C5FFFFFF" Margin="0,0,0,2"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                <TextBlock Text="m: Memory " Foreground="#C5FFFFFF"/>
+                <TextBlock Text="min " Foreground="#80FFFFFF"/>
+                <TextBlock Text="{Binding MemMinTempC, StringFormat={}{0:0}°C, FallbackValue=--, TargetNullValue=--}"
+                           Foreground="{Binding MemMinTempC, Converter={StaticResource TempColor}}"/>
+                <TextBlock Text="  max " Foreground="#80FFFFFF"/>
+                <TextBlock Text="{Binding MemMaxTempC, StringFormat={}{0:0}°C, FallbackValue=--, TargetNullValue=--}"
+                           Foreground="{Binding MemMaxTempC, Converter={StaticResource TempColor}}"/>
+                <TextBlock Text="  avg " Foreground="#80FFFFFF"/>
+                <TextBlock Text="{Binding MemAvgTempC, StringFormat={}{0:0}°C, FallbackValue=--, TargetNullValue=--}"
+                           Foreground="{Binding MemAvgTempC, Converter={StaticResource TempColor}}"/>
+            </StackPanel>
             <ItemsControl ItemsSource="{Binding TopMemProc}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
