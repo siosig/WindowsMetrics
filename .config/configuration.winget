@@ -1,0 +1,194 @@
+# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+#
+# Installs and configures the two local metrics providers WindowsMetrics polls:
+# windows_exporter (as a Windows service) and LibreHardwareMonitor (its remote
+# web server, auto-started at logon under the current user). Apply with:
+#
+#   winget configure validate -f .config/configuration.winget
+#   winget configure test     -f .config/configuration.winget
+#   winget configure          -f .config/configuration.winget --accept-configuration-agreements
+#
+# See specs/004-windowsmetrics-github-publish/contracts/winget-configuration.md
+# for the full contract this file implements, and README.md's "Manual setup"
+# section for the equivalent steps if winget configure is unavailable.
+properties:
+  configurationVersion: 0.2.0
+  resources:
+    - resource: PSDscResources/Script
+      id: windowsExporter
+      directives:
+        description: Install windows_exporter as a Windows service, scoped to loopback
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        GetScript: |
+          $svc = Get-Service -Name windows_exporter -ErrorAction SilentlyContinue
+          @{ Result = if ($svc) { $svc.Status.ToString() } else { 'NotInstalled' } }
+        TestScript: |
+          $configPath = Join-Path $env:ProgramData 'windows_exporter\config.yaml'
+          $expected = @'
+          collectors:
+            enabled: cpu,memory,system,logical_disk,net,process,gpu,thermalzone
+          web:
+            listen-address: 127.0.0.1:9182
+          log:
+            level: warn
+          '@
+          $svc = Get-Service -Name windows_exporter -ErrorAction SilentlyContinue
+          if (-not $svc -or $svc.Status -ne 'Running') { return $false }
+          if (-not (Test-Path $configPath)) { return $false }
+          $current = (Get-Content $configPath -Raw) -replace "`r`n", "`n"
+          $expectedNormalized = $expected -replace "`r`n", "`n"
+          return ($current.Trim() -eq $expectedNormalized.Trim())
+        SetScript: |
+          $ErrorActionPreference = 'Stop'
+
+          if (-not (Get-Command windows_exporter.exe -ErrorAction SilentlyContinue) -and
+              -not (Test-Path "$env:ProgramFiles\WinGet\Links\windows_exporter.exe")) {
+            winget install --id Prometheus.WindowsExporter --exact --scope machine --silent `
+              --accept-package-agreements --accept-source-agreements
+          }
+
+          $exe = "$env:ProgramFiles\WinGet\Links\windows_exporter.exe"
+          if (-not (Test-Path $exe)) {
+            $exe = Get-ChildItem "$env:ProgramFiles\WinGet\Packages\Prometheus.WindowsExporter*" `
+              -Recurse -Filter 'windows_exporter*.exe' -ErrorAction SilentlyContinue |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $exe -or -not (Test-Path $exe)) {
+            throw 'windows_exporter.exe could not be located after winget install.'
+          }
+
+          $configDir = Join-Path $env:ProgramData 'windows_exporter'
+          New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+          $configPath = Join-Path $configDir 'config.yaml'
+          @'
+          collectors:
+            enabled: cpu,memory,system,logical_disk,net,process,gpu,thermalzone
+          web:
+            listen-address: 127.0.0.1:9182
+          log:
+            level: warn
+          '@ | Set-Content -Path $configPath -Encoding utf8
+
+          $svc = Get-Service -Name windows_exporter -ErrorAction SilentlyContinue
+          if (-not $svc) {
+            New-Service -Name windows_exporter -BinaryPathName "`"$exe`" --config.file=`"$configPath`"" `
+              -DisplayName 'windows_exporter' -StartupType Automatic | Out-Null
+          } elseif ($svc.Status -ne 'Stopped') {
+            Stop-Service -Name windows_exporter -Force
+          }
+          Start-Service -Name windows_exporter
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: lhm
+      directives:
+        description: Install LibreHardwareMonitor
+        allowPrerelease: true
+      settings:
+        id: LibreHardwareMonitor.LibreHardwareMonitor
+        source: winget
+
+    - resource: PSDscResources/Script
+      id: lhmConfig
+      dependsOn:
+        - lhm
+      directives:
+        description: Enable LibreHardwareMonitor's remote web server on port 8085
+        allowPrerelease: true
+      settings:
+        GetScript: |
+          @{ Result = 'see TestScript' }
+        TestScript: |
+          $configPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\LibreHardwareMonitor.LibreHardwareMonitor_Microsoft.Winget.Source_8wekyb3d8bbwe\LibreHardwareMonitor.config"
+          if (-not (Test-Path $configPath)) { return $false }
+          [xml]$xml = Get-Content $configPath
+          $wanted = @{
+            runWebServerMenuItem = 'true'
+            listenerPort         = '8085'
+            startMinMenuItem     = 'true'
+            minCloseMenuItem     = 'true'
+          }
+          foreach ($key in $wanted.Keys) {
+            $node = $xml.configuration.appSettings.add | Where-Object { $_.key -eq $key }
+            if (-not $node -or $node.value -ne $wanted[$key]) { return $false }
+          }
+          return $true
+        SetScript: |
+          $ErrorActionPreference = 'Stop'
+          $configPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\LibreHardwareMonitor.LibreHardwareMonitor_Microsoft.Winget.Source_8wekyb3d8bbwe\LibreHardwareMonitor.config"
+
+          $wasRunning = $null -ne (Get-Process -Name LibreHardwareMonitor -ErrorAction SilentlyContinue)
+          if ($wasRunning) { Stop-Process -Name LibreHardwareMonitor -Force; Start-Sleep -Seconds 2 }
+
+          if (Test-Path $configPath) {
+            [xml]$xml = Get-Content $configPath
+          } else {
+            [xml]$xml = '<?xml version="1.0" encoding="utf-8"?><configuration><appSettings></appSettings></configuration>'
+          }
+
+          $wanted = @{
+            runWebServerMenuItem = 'true'
+            listenerPort         = '8085'
+            startMinMenuItem     = 'true'
+            minCloseMenuItem     = 'true'
+          }
+          foreach ($key in $wanted.Keys) {
+            $node = $xml.configuration.appSettings.add | Where-Object { $_.key -eq $key }
+            if ($node) {
+              $node.value = $wanted[$key]
+            } else {
+              $newNode = $xml.CreateElement('add')
+              $newNode.SetAttribute('key', $key)
+              $newNode.SetAttribute('value', $wanted[$key])
+              $xml.configuration.appSettings.AppendChild($newNode) | Out-Null
+            }
+          }
+          New-Item -ItemType Directory -Path (Split-Path $configPath) -Force | Out-Null
+          $xml.Save($configPath)
+
+          if ($wasRunning) {
+            $exe = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\LibreHardwareMonitor.LibreHardwareMonitor_Microsoft.Winget.Source_8wekyb3d8bbwe\LibreHardwareMonitor.exe"
+            if (Test-Path $exe) { Start-Process -FilePath $exe }
+          }
+
+    - resource: PSDscResources/Script
+      id: lhmAutostart
+      dependsOn:
+        - lhm
+      directives:
+        description: Start LibreHardwareMonitor with administrator rights at logon
+        allowPrerelease: true
+      settings:
+        GetScript: |
+          $t = Get-ScheduledTask -TaskName LibreHardwareMonitor -ErrorAction SilentlyContinue
+          @{ Result = if ($t) { 'Registered' } else { 'NotRegistered' } }
+        TestScript: |
+          $t = Get-ScheduledTask -TaskName LibreHardwareMonitor -ErrorAction SilentlyContinue
+          return ($null -ne $t -and $t.Principal.RunLevel -eq 'Highest')
+        SetScript: |
+          $ErrorActionPreference = 'Stop'
+          $exe = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\LibreHardwareMonitor.LibreHardwareMonitor_Microsoft.Winget.Source_8wekyb3d8bbwe\LibreHardwareMonitor.exe"
+          $action = New-ScheduledTaskAction -Execute $exe
+          $trigger = New-ScheduledTaskTrigger -AtLogOn
+          $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
+          Register-ScheduledTask -TaskName LibreHardwareMonitor -Action $action -Trigger $trigger -Principal $principal -Force | Out-Null
+
+    - resource: PSDscResources/Script
+      id: lhmFirewall
+      directives:
+        description: Block inbound connections to LibreHardwareMonitor's web server (it cannot be bound to loopback only)
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        GetScript: |
+          $r = Get-NetFirewallRule -DisplayName 'Block LibreHardwareMonitor Web Server' -ErrorAction SilentlyContinue
+          @{ Result = if ($r) { $r.Enabled.ToString() } else { 'Absent' } }
+        TestScript: |
+          $r = Get-NetFirewallRule -DisplayName 'Block LibreHardwareMonitor Web Server' -ErrorAction SilentlyContinue
+          return ($null -ne $r -and $r.Enabled -eq 'True' -and $r.Action -eq 'Block' -and $r.Direction -eq 'Inbound')
+        SetScript: |
+          $existing = Get-NetFirewallRule -DisplayName 'Block LibreHardwareMonitor Web Server' -ErrorAction SilentlyContinue
+          if ($existing) { $existing | Remove-NetFirewallRule }
+          New-NetFirewallRule -DisplayName 'Block LibreHardwareMonitor Web Server' `
+            -Direction Inbound -Action Block -Protocol TCP -LocalPort 8085 | Out-Null
