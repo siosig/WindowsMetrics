@@ -48,12 +48,20 @@ Thumbs.db
 *.swp
 
 ## IDE
-.vscode/
+/.vscode/
 .idea/
 *.rsuser
 
-## Spec Kit docs (not source code)
-# specs/ is intentionally tracked
-/publish/
-/tmp/
+## Local tooling (not part of the published project)
+/.claude/
+/.specify/
+/.gemini/
+/ref/
 /report/
+/specs/
+/external/
+/tmp/
+/CLAUDE.md
+
+## Build/publish output
+/publish/
