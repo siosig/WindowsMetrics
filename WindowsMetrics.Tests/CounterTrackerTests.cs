@@ -1,6 +1,6 @@
-using OtlpMonitor.Models;
+using WindowsMetrics.Models;
 
-namespace OtlpMonitor.Tests;
+namespace WindowsMetrics.Tests;
 
 public class CounterTrackerTests
 {

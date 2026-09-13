@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 
-namespace OtlpMonitor.Models;
+namespace WindowsMetrics.Models;
 
 public class BiDirSparklineBuffer
 {

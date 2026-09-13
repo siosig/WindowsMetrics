@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace OtlpMonitor.Views.Sections;
+namespace WindowsMetrics.Views.Sections;
 
 public partial class CalendarSection : UserControl
 {

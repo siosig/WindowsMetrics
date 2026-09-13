@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace OtlpMonitor.Views.Converters;
+namespace WindowsMetrics.Views.Converters;
 
 [ValueConversion(typeof(double?), typeof(Brush))]
 public class TempToColorConverter : IValueConverter

@@ -3,10 +3,10 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using OtlpMonitor.Services;
-using OtlpMonitor.ViewModels;
+using WindowsMetrics.Services;
+using WindowsMetrics.ViewModels;
 
-namespace OtlpMonitor;
+namespace WindowsMetrics;
 
 public partial class MainWindow : Window
 {

@@ -3,7 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 
-namespace OtlpMonitor.Services;
+namespace WindowsMetrics.Services;
 
 public class TrayIconService : IDisposable
 {

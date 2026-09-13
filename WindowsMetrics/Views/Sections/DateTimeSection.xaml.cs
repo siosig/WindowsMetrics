@@ -1,7 +1,7 @@
 using System.Windows.Controls;
 using System.Windows.Threading;
 
-namespace OtlpMonitor.Views.Sections;
+namespace WindowsMetrics.Views.Sections;
 
 public partial class DateTimeSection : UserControl
 {

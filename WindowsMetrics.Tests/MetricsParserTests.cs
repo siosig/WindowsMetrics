@@ -1,51 +1,22 @@
-using OtlpMonitor.Models.Otlp;
-using OtlpMonitor.Services;
+using WindowsMetrics.Models;
+using WindowsMetrics.Services;
 
-namespace OtlpMonitor.Tests;
+namespace WindowsMetrics.Tests;
 
 public class MetricsParserTests
 {
-    private static OtlpExportRequest BuildRequest(string metricName, double value,
-        Dictionary<string, string>? labels = null, bool isSum = false, int temporality = 2)
+    private static List<FlatMetric> BuildRequest(string metricName, double value,
+        Dictionary<string, string>? labels = null, bool isCumulative = false, ulong timeNano = 1_000_000_000)
     {
-        var kvLabels = (labels ?? []).Select(kv => new KeyValue
-        {
-            Key = kv.Key,
-            Value = new AnyValue { StringValue = kv.Value }
-        }).ToList();
-
-        var dp = new NumberDataPoint
-        {
-            Attributes = kvLabels,
-            TimeUnixNano = "1000000000",
-            AsDouble = value,
-        };
-
-        OtlpMetric metric;
-        if (isSum)
-        {
-            metric = new OtlpMetric { Name = metricName, Sum = new SumData { DataPoints = [dp], AggregationTemporality = temporality, IsMonotonic = true } };
-        }
-        else
-        {
-            metric = new OtlpMetric { Name = metricName, Gauge = new GaugeData { DataPoints = [dp] } };
-        }
-
-        return new OtlpExportRequest
-        {
-            ResourceMetrics = [new ResourceMetrics
-            {
-                ScopeMetrics = [new ScopeMetrics { Metrics = [metric] }]
-            }]
-        };
+        return [new FlatMetric(metricName, labels ?? [], value, timeNano, isCumulative)];
     }
 
     [Fact]
     public void Parse_MemoryAvailable_SetCorrectly()
     {
         var parser = new MetricsParser();
-        var req = BuildRequest("windows_memory_available_bytes", 4_000_000_000);
-        var snapshot = parser.Parse(req);
+        var flat = BuildRequest("windows_memory_available_bytes", 4_000_000_000);
+        var snapshot = parser.Parse(flat);
         Assert.Equal(4_000_000_000, snapshot.Memory.AvailableBytes);
     }
 
@@ -53,8 +24,8 @@ public class MetricsParserTests
     public void Parse_ProcessCount_SetCorrectly()
     {
         var parser = new MetricsParser();
-        var req = BuildRequest("windows_os_processes", 360);
-        var snapshot = parser.Parse(req);
+        var flat = BuildRequest("windows_system_processes", 360);
+        var snapshot = parser.Parse(flat);
         Assert.Equal(360, snapshot.System.ProcessCount);
     }
 
@@ -62,19 +33,19 @@ public class MetricsParserTests
     public void Parse_CpuCounter_FirstCall_ReturnsZero()
     {
         var parser = new MetricsParser();
-        var req = BuildRequest("windows_cpu_time_total", 100,
-            new Dictionary<string, string> { ["mode"] = "idle", ["core"] = "0" }, isSum: true);
-        var snapshot = parser.Parse(req);
-        // 初回は差分計算不可 → IdlePercent は 0 になる
-        Assert.Equal(0, snapshot.Cpu.IdlePercent);
+        var flat = BuildRequest("windows_cpu_time_total", 100,
+            new Dictionary<string, string> { ["mode"] = "idle", ["core"] = "0" }, isCumulative: true);
+        var snapshot = parser.Parse(flat);
+        // First sample has no prior sample to diff against, so no rate can be computed yet.
+        Assert.Null(snapshot.Cpu.IdlePercent);
     }
 
     [Fact]
     public void Parse_UnknownMetric_DoesNotThrow()
     {
         var parser = new MetricsParser();
-        var req = BuildRequest("unknown_metric_xyz", 42);
-        var ex = Record.Exception(() => parser.Parse(req));
+        var flat = BuildRequest("unknown_metric_xyz", 42);
+        var ex = Record.Exception(() => parser.Parse(flat));
         Assert.Null(ex);
     }
 
@@ -82,10 +53,23 @@ public class MetricsParserTests
     public void Parse_DiskVolume_CreatesEntry()
     {
         var parser = new MetricsParser();
-        var req = BuildRequest("windows_logical_disk_percent_disk_time", 5.0,
+        var flat = BuildRequest("windows_logical_disk_percent_disk_time", 5.0,
             new Dictionary<string, string> { ["volume"] = "C:" });
-        var snapshot = parser.Parse(req);
+        var snapshot = parser.Parse(flat);
         Assert.Single(snapshot.Disks);
         Assert.Equal("C:", snapshot.Disks[0].DriveLetter);
+    }
+
+    [Fact]
+    public void Parse_EmptyBatch_PreservesLatestValues()
+    {
+        // A failed scrape passes an empty batch through so the connection-state update
+        // still happens, but it must not wipe out previously observed metric values.
+        var parser = new MetricsParser();
+        parser.Parse(BuildRequest("windows_memory_available_bytes", 4_000_000_000));
+
+        var snapshot = parser.Parse([]);
+
+        Assert.Equal(4_000_000_000, snapshot.Memory.AvailableBytes);
     }
 }

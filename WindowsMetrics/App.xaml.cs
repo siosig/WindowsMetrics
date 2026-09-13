@@ -1,12 +1,19 @@
+using System.IO;
+using System.Net.Http;
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using OtlpMonitor.Services;
-using OtlpMonitor.ViewModels;
+using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
+using WindowsMetrics.Models;
+using WindowsMetrics.Services;
+using WindowsMetrics.Services.Scraping;
+using WindowsMetrics.ViewModels;
 
-namespace OtlpMonitor;
+namespace WindowsMetrics;
 
 public partial class App : Application
 {
@@ -23,7 +30,8 @@ public partial class App : Application
         }
         catch (AbandonedMutexException)
         {
-            // 前回強制終了で Abandoned になった場合でも所有権は取得済み
+            // The previous instance crashed without releasing the mutex, but ownership
+            // still transfers to us in that case.
             isNew = true;
         }
         if (!isNew)
@@ -33,7 +41,11 @@ public partial class App : Application
             return;
         }
 
+        ConfigureSerilog();
+
         var builder = Host.CreateApplicationBuilder();
+        builder.Logging.ClearProviders();
+        builder.Logging.AddSerilog(dispose: true);
 
         builder.Services.AddSingleton(Dispatcher);
         builder.Services.AddSingleton<AppSettings>();
@@ -41,12 +53,25 @@ public partial class App : Application
         builder.Services.AddSingleton<MetricsParser>();
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();
-        builder.Services.AddHostedService<OtlpHostedService>();
+
+        builder.Services
+            .AddHttpClient("scrape")
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                UseProxy = false, // targets are always loopback; no proxy resolution needed.
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            });
+        builder.Services.AddSingleton<PrometheusScraper>();
+        builder.Services.AddSingleton<IReadOnlyList<ScrapeTarget>>(sp =>
+            sp.GetRequiredService<AppSettings>().CreateScrapeTargets());
+        builder.Services.AddHostedService<ScrapeHostedService>();
 
         _host = builder.Build();
 
         var settings = _host.Services.GetRequiredService<AppSettings>();
         settings.Load();
+        foreach (var warning in settings.LoadWarnings)
+            Log.Warning("AppSettings: {Warning}", warning);
         Resources["AppFontFamily"] = new FontFamily(settings.FontFamilyName);
         Resources["AppFontSize"] = settings.FontSize;
         Resources["AppFontSizeSmall"] = Math.Max(6.0, settings.FontSize - 2);
@@ -56,6 +81,25 @@ public partial class App : Application
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         _trayIcon = new TrayIconService(mainWindow);
         mainWindow.Show();
+    }
+
+    private static void ConfigureSerilog()
+    {
+        var logDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "WindowsMetrics", "logs");
+
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("System", LogEventLevel.Warning)
+            .WriteTo.File(
+                Path.Combine(logDirectory, "windowsmetrics-.log"),
+                rollingInterval: RollingInterval.Day,
+                fileSizeLimitBytes: 1_048_576,
+                rollOnFileSizeLimit: true,
+                retainedFileCountLimit: 5)
+            .CreateLogger();
     }
 
     private async void Application_Exit(object sender, ExitEventArgs e)
@@ -68,5 +112,6 @@ public partial class App : Application
         }
         _mutex?.ReleaseMutex();
         _mutex?.Dispose();
+        await Log.CloseAndFlushAsync();
     }
 }

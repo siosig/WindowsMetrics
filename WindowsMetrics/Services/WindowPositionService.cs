@@ -1,6 +1,6 @@
 using Microsoft.Win32;
 
-namespace OtlpMonitor.Services;
+namespace WindowsMetrics.Services;
 
 public static class WindowPositionService
 {

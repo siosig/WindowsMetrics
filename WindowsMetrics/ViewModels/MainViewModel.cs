@@ -1,11 +1,11 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Threading;
-using OtlpMonitor.Models;
-using OtlpMonitor.Models.Display;
-using OtlpMonitor.Services;
+using WindowsMetrics.Models;
+using WindowsMetrics.Models.Display;
+using WindowsMetrics.Services;
 
-namespace OtlpMonitor.ViewModels;
+namespace WindowsMetrics.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
@@ -94,9 +94,12 @@ public class MainViewModel : INotifyPropertyChanged
     public ProcessSnapshot[] TopCpuProc { get => _topCpuProc; private set => Set(ref _topCpuProc, value); }
     public NetworkProcessSnapshot[] TopNetProc { get => _topNetProc; private set => Set(ref _topNetProc, value); }
 
-    // --- Status ---
-    private bool _isOnline;
-    public bool IsOnline { get => _isOnline; private set => Set(ref _isOnline, value); }
+    // --- Connection status ---
+    private ConnectionState _connectionState = ConnectionState.AllOffline;
+    public ConnectionState ConnectionState { get => _connectionState; private set => Set(ref _connectionState, value); }
+
+    private string _connectionTooltip = string.Empty;
+    public string ConnectionTooltip { get => _connectionTooltip; private set => Set(ref _connectionTooltip, value); }
 
     public MainViewModel(MetricsChannel channel, Dispatcher dispatcher)
     {
@@ -108,7 +111,6 @@ public class MainViewModel : INotifyPropertyChanged
     {
         _cts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
         _ = ConsumeLoopAsync(_cts.Token);
-        _ = OfflineWatcherAsync(_cts.Token);
     }
 
     public void StopConsuming()
@@ -124,17 +126,9 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task OfflineWatcherAsync(CancellationToken ct)
-    {
-        while (!ct.IsCancellationRequested)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(5), ct).ConfigureAwait(false);
-        }
-    }
-
     private void ApplySnapshot(MetricsSnapshot s)
     {
-        IsOnline = true;
+        UpdateConnectionStatus(s.ProviderStates);
         MemUsedBytes = s.Memory.UsedBytes;
         MemTotalBytes = s.Memory.TotalBytes;
         MemUsagePercent = s.Memory.UsagePercent;
@@ -178,6 +172,45 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(NetworkSparkline));
         SnapshotApplied?.Invoke();
     }
+
+    private void UpdateConnectionStatus(IReadOnlyDictionary<MetricsProvider, ProviderHealth> states)
+    {
+        if (states.Count == 0)
+        {
+            ConnectionState = ConnectionState.AllOffline;
+            ConnectionTooltip = string.Empty;
+            return;
+        }
+
+        var onlineCount = states.Values.Count(h => h.IsOnline);
+        ConnectionState = onlineCount == states.Count
+            ? ConnectionState.AllOnline
+            : onlineCount == 0
+                ? ConnectionState.AllOffline
+                : ConnectionState.Degraded;
+
+        ConnectionTooltip = string.Join(Environment.NewLine,
+            states.OrderBy(kv => kv.Key).Select(kv => FormatProviderLine(kv.Key, kv.Value)));
+    }
+
+    private static string FormatProviderLine(MetricsProvider provider, ProviderHealth health)
+    {
+        var name = ProviderDisplayName(provider);
+        if (health.IsOnline)
+            return $"{name}: online (last update {health.LastSuccess:HH:mm:ss})";
+        if (health.OfflineSince is null)
+            return $"{name}: connecting...";
+
+        var reason = string.IsNullOrEmpty(health.LastError) ? string.Empty : $" ({health.LastError})";
+        return $"{name}: offline since {health.OfflineSince:HH:mm:ss}{reason}";
+    }
+
+    private static string ProviderDisplayName(MetricsProvider provider) => provider switch
+    {
+        MetricsProvider.WindowsExporter => "windows_exporter",
+        MetricsProvider.LibreHardwareMonitor => "LibreHardwareMonitor",
+        _ => provider.ToString(),
+    };
 
     public event Action? SnapshotApplied;
 

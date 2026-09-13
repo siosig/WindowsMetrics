@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace OtlpMonitor.Services;
+namespace WindowsMetrics.Services;
 
 public static class MicaHelper
 {

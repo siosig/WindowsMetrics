@@ -1,4 +1,4 @@
-namespace OtlpMonitor.Models;
+namespace WindowsMetrics.Models;
 
 /// <summary>
 /// CUMULATIVE カウンターメトリクスの差分 (units/sec) を計算する。

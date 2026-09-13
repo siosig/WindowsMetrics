@@ -1,6 +1,8 @@
-namespace OtlpMonitor.Models.Display;
+namespace WindowsMetrics.Models.Display;
 
-public class MetricsSnapshot
+using WindowsMetrics.Models;
+
+public sealed record MetricsSnapshot
 {
     public DateTimeOffset ReceivedAt { get; init; } = DateTimeOffset.Now;
     public MemoryInfo Memory { get; init; } = new();
@@ -13,6 +15,10 @@ public class MetricsSnapshot
     public HardwareTemperatures Temperatures { get; init; } = new();
     public DiskInfo[] Disks { get; init; } = [];
     public NetworkInfo Network { get; init; } = new();
+
+    /// <summary>Per-provider connection health as of this snapshot. Empty before the first scrape.</summary>
+    public IReadOnlyDictionary<MetricsProvider, ProviderHealth> ProviderStates { get; init; } =
+        new Dictionary<MetricsProvider, ProviderHealth>();
 }
 
 public class MemoryInfo

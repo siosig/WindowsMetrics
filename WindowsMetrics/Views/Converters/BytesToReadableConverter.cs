@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Windows.Data;
 
-namespace OtlpMonitor.Views.Converters;
+namespace WindowsMetrics.Views.Converters;
 
 [ValueConversion(typeof(double), typeof(string))]
 public class BytesToReadableConverter : IValueConverter

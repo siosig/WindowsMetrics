@@ -1,12 +1,34 @@
 using System.Management;
-using OtlpMonitor.Models;
-using OtlpMonitor.Models.Display;
-using OtlpMonitor.Models.Otlp;
+using WindowsMetrics.Models;
+using WindowsMetrics.Models.Display;
 
-namespace OtlpMonitor.Services;
+namespace WindowsMetrics.Services;
 
 public class MetricsParser
 {
+    /// <summary>
+    /// Name prefixes this parser actually consumes. Scrapers pass this to
+    /// <see cref="Parsing.PrometheusTextParser.Parse"/> so unrelated series (e.g. the bulk of
+    /// windows_exporter's process/gpu memory metrics we never read) are dropped before they
+    /// ever become a <see cref="FlatMetric"/>.
+    /// See specs/004-windowsmetrics-github-publish/contracts/provider-metrics.md.
+    /// </summary>
+    public static readonly IReadOnlyCollection<string> RequiredMetricPrefixes =
+    [
+        "windows_cpu_",
+        "windows_memory_",
+        "windows_system_",
+        "windows_process_handles",
+        "windows_process_working_set_bytes",
+        "windows_process_cpu_time_total",
+        "windows_logical_disk_",
+        "windows_net_bytes_",
+        "windows_gpu_engine_time_seconds",
+        "windows_thermalzone_temperature_celsius",
+        "lhm_memory_temperature_celsius",
+        "lhm_storage_temperature_celsius",
+    ];
+
     private readonly Dictionary<string, CounterTracker> _counters = new();
     private readonly Dictionary<string, double> _lastValidRate = new();
     private readonly Dictionary<long, string> _pidToName = new();
@@ -74,10 +96,8 @@ public class MetricsParser
     private ProcessSnapshot[] _latestTopMemProc = [];
     private ProcessSnapshot[] _latestTopCpuProc = [];
 
-    public MetricsSnapshot Parse(OtlpExportRequest request)
+    public MetricsSnapshot Parse(IReadOnlyList<FlatMetric> flat)
     {
-        var flat = FlattenMetrics(request);
-
         // 含まれているドメインだけ更新し、他は最後の値を維持する
         if (flat.Any(f => f.Name == "lhm_memory_temperature_celsius"))
             UpdateDimmTemperatures(flat);
@@ -125,35 +145,9 @@ public class MetricsParser
         };
     }
 
-    // --- Flatten ---
-
-    private static List<FlatMetric> FlattenMetrics(OtlpExportRequest request)
-    {
-        var result = new List<FlatMetric>();
-        foreach (var rm in request.ResourceMetrics ?? [])
-        foreach (var sm in rm.ScopeMetrics ?? [])
-        foreach (var m in sm.Metrics ?? [])
-        {
-            var points = (m.Gauge?.DataPoints ?? m.Sum?.DataPoints) ?? [];
-
-            // Prometheus→OTLP変換でcumulativeカウンターがGaugeになる場合がある。
-            // _total サフィックスのGaugeは累積カウンターとして扱う。
-            bool isCumulative = m.Sum?.AggregationTemporality == 2 ||
-                                 (m.Gauge != null && m.Name.EndsWith("_total"));
-
-            foreach (var dp in points)
-            {
-                var labels = (dp.Attributes ?? [])
-                    .ToDictionary(kv => kv.Key, kv => kv.Value?.AsString() ?? string.Empty);
-                result.Add(new FlatMetric(m.Name, labels, dp.GetValue(), dp.GetTimeNano(), isCumulative));
-            }
-        }
-        return result;
-    }
-
     // --- Memory ---
 
-    private MemoryInfo ParseMemory(List<FlatMetric> flat)
+    private MemoryInfo ParseMemory(IReadOnlyList<FlatMetric> flat)
     {
         double total = GetGauge(flat, "windows_memory_physical_total_bytes");
         double available = GetGauge(flat, "windows_memory_available_bytes");
@@ -194,7 +188,7 @@ public class MetricsParser
         };
     }
 
-    private void UpdateDimmTemperatures(List<FlatMetric> flat)
+    private void UpdateDimmTemperatures(IReadOnlyList<FlatMetric> flat)
     {
         // 「過去値で穴埋めしない」ため、当バッチに DIMM 温度サンプルが含まれていれば
         // dict をクリアしてから当バッチ分のみを入れ直す。
@@ -211,7 +205,7 @@ public class MetricsParser
 
     // --- CPU ---
 
-    private CpuInfo ParseCpu(List<FlatMetric> flat)
+    private CpuInfo ParseCpu(IReadOnlyList<FlatMetric> flat)
     {
         double? dpc    = GetCpuModeRate(flat, "windows_cpu_time_total", "mode", "dpc");
         double? intr   = GetCpuModeRate(flat, "windows_cpu_time_total", "mode", "interrupt");
@@ -237,7 +231,7 @@ public class MetricsParser
         };
     }
 
-    private double? GetCpuModeRate(List<FlatMetric> flat, string metricName, string labelKey, string labelVal)
+    private double? GetCpuModeRate(IReadOnlyList<FlatMetric> flat, string metricName, string labelKey, string labelVal)
     {
         var points = flat.Where(f => f.Name == metricName &&
                                      f.IsCumulative &&
@@ -259,7 +253,7 @@ public class MetricsParser
 
     // --- System Objects ---
 
-    private static SystemObjectsInfo ParseSystem(List<FlatMetric> flat) => new()
+    private static SystemObjectsInfo ParseSystem(IReadOnlyList<FlatMetric> flat) => new()
     {
         ProcessCount = (long)GetGauge(flat, "windows_system_processes"),
         ThreadCount  = (long)GetGauge(flat, "windows_system_threads"),
@@ -269,7 +263,7 @@ public class MetricsParser
 
     // --- GPU ---
 
-    private GpuInfo ParseGpu(List<FlatMetric> flat)
+    private GpuInfo ParseGpu(IReadOnlyList<FlatMetric> flat)
     {
         // windows_gpu_engine_time_seconds: 累積秒数（プロセス起動からの合計GPU時間）
         // IsCumulative=False でも実態は単調増加カウンター → CounterTracker でレートを計算
@@ -319,7 +313,7 @@ public class MetricsParser
 
     // --- Temperatures ---
 
-    private static HardwareTemperatures ParseTemperatures(List<FlatMetric> flat)
+    private static HardwareTemperatures ParseTemperatures(IReadOnlyList<FlatMetric> flat)
     {
         // windows_thermalzone_temperature_celsius: システム温度帯域ゾーン
         // CPU Package温度は現バージョンのwindows_exporterでは未提供
@@ -334,7 +328,7 @@ public class MetricsParser
 
     // --- Disks ---
 
-    private void UpdateDiskTemperatures(List<FlatMetric> flat)
+    private void UpdateDiskTemperatures(IReadOnlyList<FlatMetric> flat)
     {
         foreach (var f in flat.Where(f => f.Name == "lhm_storage_temperature_celsius"))
         {
@@ -346,7 +340,7 @@ public class MetricsParser
         }
     }
 
-    private DiskInfo[] ParseDisks(List<FlatMetric> flat)
+    private DiskInfo[] ParseDisks(IReadOnlyList<FlatMetric> flat)
     {
         var volumes = flat
             .Where(f => f.Labels.ContainsKey("volume"))
@@ -388,7 +382,7 @@ public class MetricsParser
 
     // --- Network ---
 
-    private NetworkInfo ParseNetwork(List<FlatMetric> flat)
+    private NetworkInfo ParseNetwork(IReadOnlyList<FlatMetric> flat)
     {
         var nics = flat.Where(f => f.Labels.ContainsKey("nic"))
                        .Select(f => f.Labels["nic"]).Distinct().ToList();
@@ -410,7 +404,7 @@ public class MetricsParser
 
     // --- Process lists ---
 
-    private ProcessSnapshot[] ParseTopMemoryProcesses(List<FlatMetric> flat) =>
+    private ProcessSnapshot[] ParseTopMemoryProcesses(IReadOnlyList<FlatMetric> flat) =>
         flat.Where(f => f.Name == "windows_process_working_set_bytes")
             .GroupBy(f => (
                 f.Labels.GetValueOrDefault("process", ""),
@@ -424,7 +418,7 @@ public class MetricsParser
             .OrderByDescending(p => p.MemoryBytes)
             .Take(5).ToArray();
 
-    private ProcessSnapshot[] ParseTopCpuProcesses(List<FlatMetric> flat)
+    private ProcessSnapshot[] ParseTopCpuProcesses(IReadOnlyList<FlatMetric> flat)
     {
         var result = new List<ProcessSnapshot>();
         var groups = flat.Where(f => f.Name == "windows_process_cpu_time_total" && f.IsCumulative)
@@ -453,7 +447,7 @@ public class MetricsParser
         return result.OrderByDescending(p => p.CpuPercent).Take(5).ToArray();
     }
 
-    private void UpdatePidNames(List<FlatMetric> flat, string metricName)
+    private void UpdatePidNames(IReadOnlyList<FlatMetric> flat, string metricName)
     {
         foreach (var f in flat.Where(f => f.Name == metricName))
         {
@@ -468,10 +462,10 @@ public class MetricsParser
 
     // --- Helpers ---
 
-    private static double GetGauge(List<FlatMetric> flat, string name) =>
+    private static double GetGauge(IReadOnlyList<FlatMetric> flat, string name) =>
         flat.FirstOrDefault(f => f.Name == name)?.Value ?? 0;
 
-    private static double? GetNullableGauge(List<FlatMetric> flat, string name,
+    private static double? GetNullableGauge(IReadOnlyList<FlatMetric> flat, string name,
         string? labelKey = null, string? labelVal = null)
     {
         var match = flat.FirstOrDefault(f => f.Name == name &&
@@ -479,7 +473,7 @@ public class MetricsParser
         return match?.Value is double d && d > 0 ? d : null;
     }
 
-    private double? GetCounterRate(List<FlatMetric> flat, string name,
+    private double? GetCounterRate(IReadOnlyList<FlatMetric> flat, string name,
         string? labelKey = null, string? labelVal = null)
     {
         var match = flat.FirstOrDefault(f => f.Name == name && f.IsCumulative &&
@@ -504,11 +498,4 @@ public class MetricsParser
         }
         return tracker;
     }
-
-    private record FlatMetric(
-        string Name,
-        Dictionary<string, string> Labels,
-        double Value,
-        ulong TimeNano,
-        bool IsCumulative);
 }

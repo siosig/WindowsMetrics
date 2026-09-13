@@ -1,7 +1,7 @@
 using System.Threading.Channels;
-using OtlpMonitor.Models.Display;
+using WindowsMetrics.Models.Display;
 
-namespace OtlpMonitor.Services;
+namespace WindowsMetrics.Services;
 
 public class MetricsChannel
 {

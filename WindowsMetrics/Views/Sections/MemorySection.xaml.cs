@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace OtlpMonitor.Views.Sections;
+namespace WindowsMetrics.Views.Sections;
 
 public partial class MemorySection : UserControl
 {
