@@ -243,6 +243,66 @@ public class ScrapeHostedServiceTests
     }
 
     [Fact]
+    public async Task SuccessfulScrape_SetsOriginToSucceededForThatProvider()
+    {
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.When(WeUrl).Respond("text/plain", "windows_memory_available_bytes 123\n");
+        mockHttp.When(LhmUrl).Respond("text/plain", "lhm_memory_temperature_celsius{hardwareId=\"/memory/dimm/0\"} 40\n");
+
+        var channel = new MetricsChannel();
+        var service = new ScrapeHostedService(Targets(), BuildScraper(mockHttp), new MetricsParser(), channel,
+            NullLogger<ScrapeHostedService>.Instance);
+
+        await service.StartAsync(CancellationToken.None);
+        try
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            MetricsSnapshot? snapshot = null;
+            while (DateTime.UtcNow < deadline)
+            {
+                var s = await ReadNextAsync(channel, TimeSpan.FromSeconds(5));
+                if (s.Origin is { Provider: MetricsProvider.WindowsExporter, Succeeded: true }) { snapshot = s; break; }
+            }
+
+            Assert.NotNull(snapshot);
+        }
+        finally
+        {
+            await service.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public async Task HttpServerError_SetsOriginToNotSucceededForThatProvider()
+    {
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.When(WeUrl).Respond(System.Net.HttpStatusCode.InternalServerError);
+        mockHttp.When(LhmUrl).Respond("text/plain", "lhm_memory_temperature_celsius{hardwareId=\"/memory/dimm/0\"} 40\n");
+
+        var channel = new MetricsChannel();
+        var service = new ScrapeHostedService(Targets(), BuildScraper(mockHttp), new MetricsParser(), channel,
+            NullLogger<ScrapeHostedService>.Instance);
+
+        await service.StartAsync(CancellationToken.None);
+        try
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            MetricsSnapshot? snapshot = null;
+            while (DateTime.UtcNow < deadline)
+            {
+                var s = await ReadNextAsync(channel, TimeSpan.FromSeconds(5));
+                if (s.Origin is { Provider: MetricsProvider.WindowsExporter, Succeeded: false }) { snapshot = s; break; }
+            }
+
+            Assert.NotNull(snapshot);
+        }
+        finally
+        {
+            await service.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Fact]
     public async Task OneProviderFailing_DoesNotStopSnapshotsForTheOtherProvider()
     {
         var mockHttp = new MockHttpMessageHandler();

@@ -20,7 +20,6 @@ public partial class MainWindow : Window
         vm.SnapshotApplied += () =>
         {
             MemSection.UpdateBars();
-            CpuSec.UpdateSparkline();
             NetSec.UpdateSparkline();
         };
         Loaded += OnLoaded;

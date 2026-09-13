@@ -22,10 +22,10 @@ WindowsMetrics が依存するのは、ローカルで動く 2 つのソフト�
 
 | ソフトウェア | 接続先 | 取得するもの | 既定周期 |
 | --- | --- | --- | --- |
-| [windows_exporter](https://github.com/prometheus-community/windows_exporter) | `http://127.0.0.1:9182/metrics` | CPU・メモリ・GPU・ディスク I/O・ネットワーク・プロセス Top5・CPU 温度 | 1 秒 |
-| **[LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor)**（必須） | `http://127.0.0.1:8085/metrics` | DIMM 温度・ストレージ温度 | 5 秒 |
+| [windows_exporter](https://github.com/prometheus-community/windows_exporter) | `http://127.0.0.1:9182/metrics` | CPU 使用率・C ステート、メモリ、GPU 使用率、ディスク I/O、ネットワーク、プロセス Top5、ACPI 熱ゾーン（下記のフォールバック用途のみ） | 1 秒 |
+| **[LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor)**（必須） | `http://127.0.0.1:8085/metrics` | CPU パッケージ/コア・GPU・マザーボード・DIMM・ストレージの各温度 | 5 秒 |
 
-**LibreHardwareMonitor がなければメモリー温度・ストレージ温度は表示できない。** また LibreHardwareMonitor 自体はハードウェアセンサーを読むために**管理者権限での実行が必須**。
+**LibreHardwareMonitor がなければ、CPU・GPU・マザーボード・メモリー・ストレージのいずれの温度も表示できない。** また LibreHardwareMonitor 自体はハードウェアセンサーを読むために**管理者権限での実行が必須**。LibreHardwareMonitor がないと、CPU カードはマシンの ACPI 熱ゾーン（実際の CPU 温度ではなく、機種によっては値が変化しない粗い代替値）にフォールバックする。
 
 ```mermaid
 flowchart LR
@@ -127,23 +127,26 @@ WindowsMetrics を起動する前に、両エンドポイントが期待どお�
 
 ```powershell
 $lines = (Invoke-WebRequest -Uri "http://127.0.0.1:9182/metrics" -UseBasicParsing).Content -split "`n"
-$lines | Select-String "^windows_thermalzone_temperature_celsius"   # CPU 温度
+$lines | Select-String "^windows_thermalzone_temperature_celsius"   # CPU 温度のフォールバック
 $lines | Select-String "^windows_process_working_set_bytes"          # プロセス一覧
-$lines | Select-String "^windows_gpu_engine_time_seconds"            # GPU
+$lines | Select-String "^windows_gpu_engine_time_seconds"            # GPU 使用率
 ```
 
 3 つとも 1 行以上返れば `process` / `gpu` / `thermalzone` が有効。空なら `ENABLED_COLLECTORS`（または `config.yaml` の `collectors.enabled`）の指定漏れ。
 
-`thermalzone` だけ空の場合、マシンが ACPI サーマルゾーンを公開していない可能性がある。この場合 CPU 温度はそもそも表示できない。
+`thermalzone` だけ空の場合、マシンが ACPI サーマルゾーンを公開していない可能性がある。これが影響するのは、LibreHardwareMonitor が使えないときの CPU 温度フォールバックだけ（後述）。
 
-**LibreHardwareMonitor — センサーツリーが取れるか**
+**LibreHardwareMonitor — 各温度センサーが取れるか**
 
 ```powershell
-$json = Invoke-RestMethod -Uri "http://127.0.0.1:8085/data.json"
-$json.Children.Children | Select-Object Text     # 検出されたハードウェア一覧
+$lhm = (Invoke-WebRequest -Uri "http://127.0.0.1:8085/metrics" -UseBasicParsing).Content -split "`n"
+$lhm | Select-String "^lhm_cpu_temperature_celsius"                    # CPU（パッケージ/コア別）
+$lhm | Select-String "^lhm_gpu\w+_temperature_celsius"                 # GPU
+$lhm | Select-String "^lhm_motherboard_temperature_celsius"            # マザーボード（Mother 行）
+$lhm | Select-String "^lhm_memory_temperature_celsius"                 # DIMM（m: Memory 行）
 ```
 
-メモリとストレージが一覧に出てくれば OK。空か極端に少ない場合、LibreHardwareMonitor が管理者権限で起動していない可能性が高い。
+いずれも 1 行以上返るはず。何も返らないコマンドがある場合、該当カードの温度（および CPU・GPU・Mother の min/max/avg 行）は「--」になる。多くは LibreHardwareMonitor が管理者権限で起動していないため（ハードウェアセンサーを読むには昇格が必須）だが、そのセンサー自体をハードウェアが公開していない場合もある（一部のマザーボードは Mother 行の全項目を報告しない、等。[トラブルシューティング](#トラブルシューティング)を参照）。
 
 ## 設定
 
@@ -183,9 +186,11 @@ Set-ItemProperty -Path 'HKCU:\Software\WindowsMetrics' -Name 'WindowsExporterUrl
 | --- | --- | --- |
 | 何も表示されない | windows_exporter サービスが停止している | `Get-Service windows_exporter` で状態確認し、`Start-Service windows_exporter` で起動、スタートアップの種類を「自動」にする |
 | 何も表示されない（サービスは稼働中） | ポート 9182 を他プロセスが使用中 | `netstat -ano \| Select-String ":9182"` で PID を特定。競合するならサービス側のポートを変更し `WindowsExporterUrl` も合わせる |
+| CPU 温度が低い値で固定される | LibreHardwareMonitor が動いていない（または管理者権限で動いていない）ため、ACPI 熱ゾーンにフォールバックしている。機種によっては熱ゾーンの値が変化しない | LibreHardwareMonitor を**管理者として**起動する。[動作確認](#動作確認)の `lhm_cpu_temperature_celsius` で確認する |
+| GPU 温度が「--」 | LibreHardwareMonitor の出力に "GPU Core" センサーが見つからない | `lhm_gpu*_temperature_celsius` が返るか確認する。内蔵 GPU や一部の古い GPU は温度センサーを公開しないことがある |
+| Mother 行の一部が「--」 | マザーボードのセンサーチップが、WindowsMetrics が認識するセンサー名を使っていない | `lhm_motherboard_temperature_celsius` の `sensorName` を、プロジェクトの `contracts/hardware-temperature-metrics.md` にある別名一覧と突き合わせる。認識できない名前は推測せず「--」にする仕様 |
 | DIMM・ストレージ温度が出ない | LibreHardwareMonitor が管理者権限で動いていない | タスクスケジューラの登録が「最上位の特権で実行する」になっているか確認。手動起動なら右クリック →「管理者として実行」 |
-| プロセス Top5・GPU・CPU 温度が空 | `process` / `gpu` / `thermalzone` コレクタが無効 | `ENABLED_COLLECTORS`（または `config.yaml`）にすべて含めて再適用し、[動作確認](#動作確認)のコマンドで検証する |
-| CPU 温度だけ出ない | マシンが ACPI サーマルゾーンを公開していない | ハードウェア側の制約。`thermalzone` が何も返さない場合はソフトウェアでは解決できない |
+| プロセス Top5・GPU 使用率が空 | windows_exporter の `process` / `gpu` コレクタが無効 | `ENABLED_COLLECTORS`（または `config.yaml`）にすべて含めて再適用し、[動作確認](#動作確認)のコマンドで検証する |
 | ストレージ温度がドライブレターに紐付かない | WMI のディスクモデル名と LibreHardwareMonitor のハードウェア名が一致しない | `Get-CimInstance Win32_DiskDrive \| Select-Object Model` と LibreHardwareMonitor の表示名を突き合わせる。アプリ側のあいまい一致でも拾えない表記揺れがあり得る |
 | スリープ復帰後に温度の更新が止まる | LibreHardwareMonitor がセンサーを見失う既知の挙動 | LibreHardwareMonitor を再起動する。頻発するならスリープ復帰イベントをトリガーに再起動するタスクを登録する |
 | 見覚えのない依存先が LAN から見える | `LISTEN_ADDR` の指定漏れ、または LibreHardwareMonitor のファイアウォール規則が未適用 | windows_exporter をループバック指定で再導入する。`Block LibreHardwareMonitor Web Server` 規則が存在し有効か確認する |

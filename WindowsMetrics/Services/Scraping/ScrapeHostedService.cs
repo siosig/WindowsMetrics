@@ -109,7 +109,11 @@ public sealed class ScrapeHostedService : BackgroundService
                 _logger.LogInformation("{Provider} back online", provider);
 
             var snapshot = _parser.Parse(flat);
-            return snapshot with { ProviderStates = new Dictionary<MetricsProvider, ProviderHealth>(_health) };
+            return snapshot with
+            {
+                ProviderStates = new Dictionary<MetricsProvider, ProviderHealth>(_health),
+                Origin = new SnapshotOrigin(provider, Succeeded: failure is null),
+            };
         }
     }
 

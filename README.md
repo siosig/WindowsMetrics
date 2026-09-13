@@ -22,10 +22,10 @@ WindowsMetrics depends on exactly two other pieces of software, both running loc
 
 | Software | Endpoint it polls | What it provides | Default interval |
 | --- | --- | --- | --- |
-| [windows_exporter](https://github.com/prometheus-community/windows_exporter) | `http://127.0.0.1:9182/metrics` | CPU, memory, GPU, disk I/O, network, top-5 processes, CPU temperature | 1 second |
-| **[LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor)** (required) | `http://127.0.0.1:8085/metrics` | DIMM temperatures, storage temperatures | 5 seconds |
+| [windows_exporter](https://github.com/prometheus-community/windows_exporter) | `http://127.0.0.1:9182/metrics` | CPU usage/C-states, memory, GPU usage, disk I/O, network, top-5 processes, ACPI thermal zone (fallback only — see below) | 1 second |
+| **[LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor)** (required) | `http://127.0.0.1:8085/metrics` | CPU package/core, GPU, motherboard, DIMM, and storage temperatures | 5 seconds |
 
-**WindowsMetrics cannot show memory or storage temperatures without LibreHardwareMonitor, and LibreHardwareMonitor itself must run with administrator rights** to read hardware sensors at all.
+**WindowsMetrics cannot show any temperature reading (CPU, GPU, motherboard, memory, or storage) without LibreHardwareMonitor, and LibreHardwareMonitor itself must run with administrator rights** to read hardware sensors at all. Without it, the CPU card falls back to your machine's ACPI thermal zone — a coarse, sometimes-constant value that is not the actual CPU temperature.
 
 ```mermaid
 flowchart LR
@@ -127,23 +127,26 @@ Before launching WindowsMetrics, confirm both endpoints respond as expected.
 
 ```powershell
 $lines = (Invoke-WebRequest -Uri "http://127.0.0.1:9182/metrics" -UseBasicParsing).Content -split "`n"
-$lines | Select-String "^windows_thermalzone_temperature_celsius"   # CPU temperature
+$lines | Select-String "^windows_thermalzone_temperature_celsius"   # CPU temperature fallback
 $lines | Select-String "^windows_process_working_set_bytes"          # process list
-$lines | Select-String "^windows_gpu_engine_time_seconds"            # GPU
+$lines | Select-String "^windows_gpu_engine_time_seconds"            # GPU usage
 ```
 
 If all three return at least one line, `process` / `gpu` / `thermalzone` are enabled. Empty output means `ENABLED_COLLECTORS` (or `config.yaml`'s `collectors.enabled`) is missing one of them.
 
-If only `thermalzone` is empty, your machine likely doesn't expose an ACPI thermal zone — in that case, CPU temperature can't be shown at all.
+If only `thermalzone` is empty, your machine likely doesn't expose an ACPI thermal zone — that only affects the CPU temperature fallback used when LibreHardwareMonitor is unavailable (see below).
 
-**LibreHardwareMonitor — is the sensor tree reachable?**
+**LibreHardwareMonitor — are the temperature sensors reachable?**
 
 ```powershell
-$json = Invoke-RestMethod -Uri "http://127.0.0.1:8085/data.json"
-$json.Children.Children | Select-Object Text     # detected hardware
+$lhm = (Invoke-WebRequest -Uri "http://127.0.0.1:8085/metrics" -UseBasicParsing).Content -split "`n"
+$lhm | Select-String "^lhm_cpu_temperature_celsius"                    # CPU (package/per-core)
+$lhm | Select-String "^lhm_gpu\w+_temperature_celsius"                 # GPU
+$lhm | Select-String "^lhm_motherboard_temperature_celsius"            # motherboard (Mother row)
+$lhm | Select-String "^lhm_memory_temperature_celsius"                 # DIMM (m: Memory row)
 ```
 
-Memory and storage should appear in the list. If this is empty or very short, LibreHardwareMonitor probably isn't running as Administrator.
+Each command should return at least one line. If a command returns nothing, that card's temperature (and, for CPU/GPU/Mother, its min/max/avg row) will show "--". This is most often because LibreHardwareMonitor isn't running as Administrator — it needs elevation to read hardware sensors at all — or because your hardware doesn't expose that particular sensor (e.g. some motherboards don't report every Mother-row item; see [Troubleshooting](#troubleshooting)).
 
 ## Configuration
 
@@ -183,9 +186,11 @@ Neither endpoint requires authentication. With the `process` collector enabled, 
 | --- | --- | --- |
 | Nothing is displayed | windows_exporter service is stopped | `Get-Service windows_exporter`, then `Start-Service windows_exporter` and set Startup type to Automatic |
 | Nothing is displayed, service is running | Port 9182 is taken by another process | `netstat -ano \| Select-String ":9182"` to find the PID; if it conflicts, change the service's port and update `WindowsExporterUrl` to match |
+| CPU temperature is stuck at a low, constant value | LibreHardwareMonitor isn't running (or isn't running as Administrator), so the app has fallen back to the ACPI thermal zone, which on some machines never changes | Start LibreHardwareMonitor **as Administrator**; check with `lhm_cpu_temperature_celsius` in [Verify it's working](#verify-its-working) |
+| GPU temperature shows "--" | No "GPU Core" sensor was found in LibreHardwareMonitor's output for your GPU | Confirm `lhm_gpu*_temperature_celsius` returns data; integrated/older GPUs may not expose a temperature sensor to LibreHardwareMonitor at all |
+| Some Mother-row items show "--" | Your motherboard's sensor chip doesn't use the sensor names WindowsMetrics recognizes for that item | Compare `lhm_motherboard_temperature_celsius` output's `sensorName` values against the alias list in the project's `contracts/hardware-temperature-metrics.md`; unrecognized names are shown as "--" rather than guessed |
 | DIMM / storage temperatures missing | LibreHardwareMonitor isn't running with administrator rights | Check the scheduled task runs with "Run with highest privileges"; if launched manually, right-click → "Run as administrator" |
-| Process Top-5, GPU, or CPU temperature are empty | `process` / `gpu` / `thermalzone` collectors disabled | Re-apply with all collectors listed in `ENABLED_COLLECTORS` / `config.yaml`; check with the [verification](#verify-its-working) commands above |
-| CPU temperature never appears | The machine doesn't expose an ACPI thermal zone | Hardware limitation; `thermalzone` returning nothing on this machine can't be fixed in software |
+| Process Top-5 or GPU usage are empty | `process` / `gpu` collectors disabled in windows_exporter | Re-apply with all collectors listed in `ENABLED_COLLECTORS` / `config.yaml`; check with the [verification](#verify-its-working) commands above |
 | Storage temperature doesn't map to the right drive letter | WMI's disk model name and LibreHardwareMonitor's hardware name don't match | Compare `Get-CimInstance Win32_DiskDrive \| Select-Object Model` against LibreHardwareMonitor's display name; the app's fuzzy-match fallback may still miss unusual naming |
 | Temperatures stop updating after sleep | Known LibreHardwareMonitor behavior: it can lose track of sensors across sleep/resume | Restart LibreHardwareMonitor; if this happens consistently, register a scheduled task that restarts it on the resume-from-sleep event |
 | A dependency I don't recognize is visible on my LAN | Missing `LISTEN_ADDR`, or the LibreHardwareMonitor firewall block wasn't applied | Reinstall windows_exporter with the loopback address; confirm the `Block LibreHardwareMonitor Web Server` firewall rule exists and is enabled |

@@ -4,6 +4,7 @@ global using Brushes = System.Windows.Media.Brushes;
 global using UserControl = System.Windows.Controls.UserControl;
 global using FontFamily = System.Windows.Media.FontFamily;
 global using Color = System.Windows.Media.Color;
+global using Pen = System.Windows.Media.Pen;
 global using Point = System.Windows.Point;
 global using Size = System.Windows.Size;
 global using Timer = System.Timers.Timer;

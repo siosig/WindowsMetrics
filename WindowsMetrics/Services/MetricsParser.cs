@@ -1,6 +1,7 @@
 using System.Management;
 using WindowsMetrics.Models;
 using WindowsMetrics.Models.Display;
+using WindowsMetrics.Services.Sensors;
 
 namespace WindowsMetrics.Services;
 
@@ -17,8 +18,6 @@ public class MetricsParser
     [
         "windows_cpu_",
         "windows_memory_",
-        "windows_system_",
-        "windows_process_handles",
         "windows_process_working_set_bytes",
         "windows_process_cpu_time_total",
         "windows_logical_disk_",
@@ -27,6 +26,17 @@ public class MetricsParser
         "windows_thermalzone_temperature_celsius",
         "lhm_memory_temperature_celsius",
         "lhm_storage_temperature_celsius",
+        "lhm_cpu_temperature_celsius",
+        "lhm_gpunvidia_temperature_celsius",
+        "lhm_gpuamd_temperature_celsius",
+        "lhm_gpuintel_temperature_celsius",
+        "lhm_motherboard_temperature_celsius",
+        "lhm_motherboard_fan_rpm",
+    ];
+
+    private static readonly string[] GpuTemperatureMetricNames =
+    [
+        "lhm_gpunvidia_temperature_celsius", "lhm_gpuamd_temperature_celsius", "lhm_gpuintel_temperature_celsius",
     ];
 
     private readonly Dictionary<string, CounterTracker> _counters = new();
@@ -88,13 +98,22 @@ public class MetricsParser
     // Holds the most recently received value for each domain (used for partial updates)
     private MemoryInfo _latestMemory = new();
     private CpuInfo _latestCpu = new();
-    private SystemObjectsInfo _latestSystem = new();
     private GpuInfo _latestGpu = new();
     private HardwareTemperatures _latestTemperatures = new();
     private DiskInfo[] _latestDisks = [];
     private NetworkInfo _latestNetwork = new();
     private ProcessSnapshot[] _latestTopMemProc = [];
     private ProcessSnapshot[] _latestTopCpuProc = [];
+
+    // Per-source temperature values, held separately from _latestCpu/_latestGpu so a batch from
+    // one provider never erases a reading the other provider supplied (see research.md R-03).
+    // LHM's CPU package reading takes priority over the ACPI thermal zone fallback at composition
+    // time (see the end of this method), not here.
+    private double? _thermalZoneC;
+    private double? _lhmCpuPackageC;
+    private double? _gpuCoreC;
+    private (double? Min, double? Max, double? Avg) _cpuCoreStats;
+    private (double? Min, double? Max, double? Avg) _gpuStats;
 
     public MetricsSnapshot Parse(IReadOnlyList<FlatMetric> flat)
     {
@@ -103,14 +122,24 @@ public class MetricsParser
             UpdateDimmTemperatures(flat);
         if (flat.Any(f => f.Name.StartsWith("windows_memory_") || f.Name == "lhm_memory_temperature_celsius"))
             _latestMemory = ParseMemory(flat);
-        if (flat.Any(f => f.Name.StartsWith("windows_cpu_") || f.Name == "windows_thermalzone_temperature_celsius"))
+        if (flat.Any(f => f.Name.StartsWith("windows_cpu_")))
             _latestCpu = ParseCpu(flat);
-        if (flat.Any(f => f.Name.StartsWith("windows_system_") || f.Name == "windows_process_handles"))
-            _latestSystem = ParseSystem(flat);
+        if (flat.Any(f => f.Name == "windows_thermalzone_temperature_celsius"))
+            _thermalZoneC = GetNullableGauge(flat, "windows_thermalzone_temperature_celsius");
+        if (flat.Any(f => f.Name == "lhm_cpu_temperature_celsius"))
+        {
+            _lhmCpuPackageC = HardwareSensorSelector.SelectCpuPackage(flat);
+            _cpuCoreStats = HardwareSensorSelector.SelectCpuCoreStats(flat);
+        }
         if (flat.Any(f => f.Name == "windows_gpu_engine_time_seconds"))
             _latestGpu = ParseGpu(flat);
-        if (flat.Any(f => f.Name == "windows_thermalzone_temperature_celsius"))
-            _latestTemperatures = ParseTemperatures(flat);
+        if (flat.Any(f => GpuTemperatureMetricNames.Contains(f.Name)))
+        {
+            _gpuCoreC = HardwareSensorSelector.SelectGpuCore(flat);
+            _gpuStats = HardwareSensorSelector.SelectGpuStats(flat);
+        }
+        if (flat.Any(f => f.Name == "lhm_motherboard_temperature_celsius" || f.Name == "lhm_motherboard_fan_rpm"))
+            _latestTemperatures = HardwareSensorSelector.SelectBoard(flat);
         if (flat.Any(f => f.Name == "lhm_storage_temperature_celsius"))
             UpdateDiskTemperatures(flat);
 
@@ -133,9 +162,23 @@ public class MetricsParser
         {
             ReceivedAt = DateTimeOffset.Now,
             Memory = _latestMemory,
-            Cpu = _latestCpu,
-            System = _latestSystem,
-            Gpu = _latestGpu,
+            // LHM's CPU package temperature wins whenever it has ever been observed; otherwise
+            // fall back to the ACPI thermal zone (see spec.md FR-007, contracts/hardware-
+            // temperature-metrics.md "CPU card's temperature").
+            Cpu = _latestCpu with
+            {
+                TemperatureCelsius = _lhmCpuPackageC ?? _thermalZoneC,
+                MinTempC = _cpuCoreStats.Min,
+                MaxTempC = _cpuCoreStats.Max,
+                AvgTempC = _cpuCoreStats.Avg,
+            },
+            Gpu = _latestGpu with
+            {
+                TemperatureCelsius = _gpuCoreC,
+                MinTempC = _gpuStats.Min,
+                MaxTempC = _gpuStats.Max,
+                AvgTempC = _gpuStats.Avg,
+            },
             Temperatures = _latestTemperatures,
             Disks = _latestDisks,
             Network = _latestNetwork,
@@ -215,11 +258,11 @@ public class MetricsParser
         double? c1     = GetCpuModeRate(flat, "windows_cpu_cstate_seconds_total", "state", "c1");
         double? c2     = GetCpuModeRate(flat, "windows_cpu_cstate_seconds_total", "state", "c2");
         double? c3     = GetCpuModeRate(flat, "windows_cpu_cstate_seconds_total", "state", "c3");
-        double? temp   = GetNullableGauge(flat, "windows_thermalzone_temperature_celsius");
 
         return new CpuInfo
         {
-            TemperatureCelsius = temp,
+            // TemperatureCelsius is filled in by Parse() from the LHM/thermal-zone fallback
+            // chain, not here -- this batch may not even be the one that carries the temperature.
             C1Percent = c1,
             C2Percent = c2,
             C3Percent = c3,
@@ -250,16 +293,6 @@ public class MetricsParser
         if (validCount == 0) return null;
         return Math.Clamp(totalRate / validCount, 0, 100);
     }
-
-    // --- System Objects ---
-
-    private static SystemObjectsInfo ParseSystem(IReadOnlyList<FlatMetric> flat) => new()
-    {
-        ProcessCount = (long)GetGauge(flat, "windows_system_processes"),
-        ThreadCount  = (long)GetGauge(flat, "windows_system_threads"),
-        HandleCount  = (long)flat.Where(f => f.Name == "windows_process_handles").Sum(f => f.Value),
-        QueueLenProc = GetNullableGauge(flat, "windows_system_processor_queue_length"),
-    };
 
     // --- GPU ---
 
@@ -308,22 +341,7 @@ public class MetricsParser
             })
             .ToArray();
 
-        return new GpuInfo { OverallPercent = overall, Processes = processes };
-    }
-
-    // --- Temperatures ---
-
-    private static HardwareTemperatures ParseTemperatures(IReadOnlyList<FlatMetric> flat)
-    {
-        // windows_thermalzone_temperature_celsius: system thermal zone
-        // CPU package temperature is not provided by the current version of windows_exporter
-        double? thermalZone = GetNullableGauge(flat, "windows_thermalzone_temperature_celsius");
-
-        return new HardwareTemperatures
-        {
-            CpuPackageCelsius = thermalZone,
-            SysCelsius        = thermalZone,
-        };
+        return new GpuInfo { OverallPercent = overall, Processes = processes, IsUsageKnown = true };
     }
 
     // --- Disks ---

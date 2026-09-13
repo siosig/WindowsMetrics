@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Threading;
 using WindowsMetrics.Models;
 using WindowsMetrics.Models.Display;
+using WindowsMetrics.Models.Trends;
 using WindowsMetrics.Services;
 
 namespace WindowsMetrics.ViewModels;
@@ -13,9 +14,29 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly Dispatcher _dispatcher;
     private CancellationTokenSource? _cts;
 
-    // Sparkline buffers
-    public SparklineBuffer CpuSparkline { get; } = new(30);
+    // Sparkline buffer (network only -- CPU/Memory/GPU now use MetricTrends/TrendGraph instead)
     public BiDirSparklineBuffer NetworkSparkline { get; } = new(30);
+
+    // --- Trend graphs ---
+    public MetricTrends Trends { get; } = new();
+
+    /// <summary>
+    /// Bumped once whenever <see cref="Trends"/>' CPU/Memory/GPU usage series advance, so the
+    /// three usage <see cref="Views.Controls.TrendGraph"/> instances know to repaint. Carries no
+    /// meaning of its own.
+    /// </summary>
+    public int UsageTrendRevision
+    {
+        get => field;
+        private set { field = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>Same role as <see cref="UsageTrendRevision"/>, for the Mother board temperature graph.</summary>
+    public int BoardTrendRevision
+    {
+        get => field;
+        private set { field = value; OnPropertyChanged(); }
+    }
 
     // --- Memory ---
     private double _memUsedBytes;
@@ -56,17 +77,25 @@ public class MainViewModel : INotifyPropertyChanged
     public double? CpuIntr { get => _cpuIntr; private set => Set(ref _cpuIntr, value); }
     public double? CpuTotal { get => _cpuTotal; private set => Set(ref _cpuTotal, value); }
 
-    // --- System Objects ---
-    private long _procCount, _threadCount, _handleCount;
-    private double? _queueLenProc;
-    public long ProcCount { get => _procCount; private set => Set(ref _procCount, value); }
-    public long ThreadCount { get => _threadCount; private set => Set(ref _threadCount, value); }
-    public long HandleCount { get => _handleCount; private set => Set(ref _handleCount, value); }
-    public double? QueueLenProc { get => _queueLenProc; private set => Set(ref _queueLenProc, value); }
+    private double? _cpuMinTempC, _cpuMaxTempC, _cpuAvgTempC;
+    public double? CpuMinTempC { get => _cpuMinTempC; private set => Set(ref _cpuMinTempC, value); }
+    public double? CpuMaxTempC { get => _cpuMaxTempC; private set => Set(ref _cpuMaxTempC, value); }
+    public double? CpuAvgTempC { get => _cpuAvgTempC; private set => Set(ref _cpuAvgTempC, value); }
 
     // --- GPU ---
     private double _gpuOverall;
     public double GpuOverall { get => _gpuOverall; private set => Set(ref _gpuOverall, value); }
+
+    public double? GpuTemp
+    {
+        get => field;
+        private set { field = value; OnPropertyChanged(); }
+    }
+
+    private double? _gpuMinTempC, _gpuMaxTempC, _gpuAvgTempC;
+    public double? GpuMinTempC { get => _gpuMinTempC; private set => Set(ref _gpuMinTempC, value); }
+    public double? GpuMaxTempC { get => _gpuMaxTempC; private set => Set(ref _gpuMaxTempC, value); }
+    public double? GpuAvgTempC { get => _gpuAvgTempC; private set => Set(ref _gpuAvgTempC, value); }
 
     private GpuProcessSnapshot[] _topGpuProc = [];
     public GpuProcessSnapshot[] TopGpuProc { get => _topGpuProc; private set => Set(ref _topGpuProc, value); }
@@ -147,14 +176,15 @@ public class MainViewModel : INotifyPropertyChanged
         CpuDpc = s.Cpu.DpcPercent;
         CpuIntr = s.Cpu.InterruptPercent;
         CpuTotal = s.Cpu.TotalUsagePercent;
-        CpuSparkline.Push(s.Cpu.TotalUsagePercent);
-
-        ProcCount = s.System.ProcessCount;
-        ThreadCount = s.System.ThreadCount;
-        HandleCount = s.System.HandleCount;
-        QueueLenProc = s.System.QueueLenProc;
+        CpuMinTempC = s.Cpu.MinTempC;
+        CpuMaxTempC = s.Cpu.MaxTempC;
+        CpuAvgTempC = s.Cpu.AvgTempC;
 
         GpuOverall = s.Gpu.OverallPercent;
+        GpuTemp = s.Gpu.TemperatureCelsius;
+        GpuMinTempC = s.Gpu.MinTempC;
+        GpuMaxTempC = s.Gpu.MaxTempC;
+        GpuAvgTempC = s.Gpu.AvgTempC;
         TopGpuProc = s.Gpu.Processes;
         Temperatures = s.Temperatures;
         Disks = s.Disks;
@@ -168,7 +198,10 @@ public class MainViewModel : INotifyPropertyChanged
         TopCpuProc = s.TopCpuProcesses;
         TopNetProc = s.TopNetworkProcesses;
 
-        OnPropertyChanged(nameof(CpuSparkline));
+        var advanced = Trends.Record(s);
+        if (advanced.HasFlag(TrendGroups.Usage)) UsageTrendRevision++;
+        if (advanced.HasFlag(TrendGroups.BoardTemperature)) BoardTrendRevision++;
+
         OnPropertyChanged(nameof(NetworkSparkline));
         SnapshotApplied?.Invoke();
     }

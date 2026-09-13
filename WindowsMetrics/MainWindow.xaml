@@ -152,9 +152,7 @@
                 </Border>
                 <sec:MemorySection x:Name="MemSection"/>
                 <sec:ProcessMemorySection/>
-                <sec:CpuSection x:Name="CpuSec"/>
-                <sec:ProcessCpuSection/>
-                <sec:SystemObjectsSection/>
+                <sec:CpuSection/>
                 <sec:GpuSection/>
                 <sec:TemperatureSection/>
                 <sec:DiskSection/>

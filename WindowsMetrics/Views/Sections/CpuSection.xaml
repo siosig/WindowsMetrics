@@ -1,13 +1,29 @@
 <UserControl x:Class="WindowsMetrics.Views.Sections.CpuSection"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ctl="clr-namespace:WindowsMetrics.Views.Controls"
+             xmlns:conv="clr-namespace:WindowsMetrics.Views.Converters">
+    <UserControl.Resources>
+        <conv:TempToColorConverter x:Key="TempColor"/>
+    </UserControl.Resources>
     <Border CornerRadius="8" Background="#08FFFFFF" BorderBrush="#12FFFFFF"
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="CPU:" Foreground="#C5FFFFFF"/>
-                <TextBlock Text="{Binding CpuTemp, StringFormat={}{0:0.0}°C, FallbackValue=0.0°C}" Foreground="White" Margin="4,0,0,0"/>
+                <TextBlock Text="{Binding CpuTemp, StringFormat={}{0:0.0}°C, TargetNullValue=--}" Foreground="White" Margin="4,0,0,0"/>
                 <TextBlock Text="{Binding CpuTotal, StringFormat={}  {0:0.0}%}" Foreground="White"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                <TextBlock Text="min " Foreground="#80FFFFFF"/>
+                <TextBlock Text="{Binding CpuMinTempC, StringFormat={}{0:0}°C, TargetNullValue=--}"
+                           Foreground="{Binding CpuMinTempC, Converter={StaticResource TempColor}}"/>
+                <TextBlock Text="  max " Foreground="#80FFFFFF"/>
+                <TextBlock Text="{Binding CpuMaxTempC, StringFormat={}{0:0}°C, TargetNullValue=--}"
+                           Foreground="{Binding CpuMaxTempC, Converter={StaticResource TempColor}}"/>
+                <TextBlock Text="  avg " Foreground="#80FFFFFF"/>
+                <TextBlock Text="{Binding CpuAvgTempC, StringFormat={}{0:0}°C, TargetNullValue=--}"
+                           Foreground="{Binding CpuAvgTempC, Converter={StaticResource TempColor}}"/>
             </StackPanel>
             <Grid Margin="0,2">
                 <Grid.ColumnDefinitions>
@@ -38,9 +54,33 @@
                     <TextBlock Text="{Binding CpuIntr, StringFormat={}{0:0}%, FallbackValue=0%}" Foreground="White" FontSize="{DynamicResource AppFontSizeSmall}"/>
                 </StackPanel>
             </Grid>
-            <Canvas x:Name="CpuCanvas" Height="24" Margin="0,2,0,0">
-                <Polyline x:Name="CpuLine" Stroke="#8060CDFF" StrokeThickness="1.5" StrokeLineJoin="Round"/>
-            </Canvas>
+            <ctl:TrendGraph Height="24" Margin="0,2,0,0"
+                            Revision="{Binding UsageTrendRevision}"
+                            AutomationProperties.Name="CPU usage trend">
+                <ctl:TrendGraph.Lines>
+                    <ctl:TrendLine Buffer="{Binding Trends.CpuUsage}" Stroke="{StaticResource UsageTrendBrush}"/>
+                </ctl:TrendGraph.Lines>
+            </ctl:TrendGraph>
+            <ItemsControl ItemsSource="{Binding TopCpuProc}" Margin="0,2,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       FontSize="{DynamicResource AppFontSizeSmall}" Foreground="#C5FFFFFF"
+                                       TextTrimming="CharacterEllipsis">
+                                <Run Text="{Binding Name}"/><Run Text=":"/><Run Text="{Binding Pid}" Foreground="#60FFFFFF"/>
+                            </TextBlock>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding CpuPercent, StringFormat={}{0:0.0}%, FallbackValue=0.0%}"
+                                       FontSize="{DynamicResource AppFontSizeSmall}" Foreground="White"/>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
     </Border>
 </UserControl>

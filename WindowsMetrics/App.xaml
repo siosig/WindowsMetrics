@@ -11,6 +11,19 @@
             <FontFamily x:Key="AppFontFamily">Cascadia Mono</FontFamily>
             <sys:Double x:Key="AppFontSize">11</sys:Double>
             <sys:Double x:Key="AppFontSizeSmall">9</sys:Double>
+
+            <!-- Trend graph colors. Usage graphs (CPU/Memory/GPU) share one color; the Mother
+                 board graph uses one color per sensor, and that same brush is reused for the
+                 matching label's Foreground so the label doubles as a legend (SC-007). Palette
+                 is Paul Tol's "light" qualitative scheme (see research.md R-08). -->
+            <SolidColorBrush x:Key="UsageTrendBrush" Color="#8060CDFF"/>
+            <SolidColorBrush x:Key="BoardSysBrush" Color="#77AADD"/>
+            <SolidColorBrush x:Key="BoardCpuBrush" Color="#EE8866"/>
+            <SolidColorBrush x:Key="BoardMosBrush" Color="#FFAABB"/>
+            <SolidColorBrush x:Key="BoardPchBrush" Color="#EEDD88"/>
+            <SolidColorBrush x:Key="BoardSockBrush" Color="#BBCC33"/>
+            <SolidColorBrush x:Key="BoardPcieBrush" Color="#44BB99"/>
+            <SolidColorBrush x:Key="BoardM2Brush" Color="#99DDFF"/>
             <Style TargetType="TextBlock">
                 <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
                 <Setter Property="FontSize" Value="{DynamicResource AppFontSize}"/>
