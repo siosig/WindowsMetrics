@@ -26,7 +26,7 @@ public partial class App : Application
         bool isNew;
         try
         {
-            _mutex = new Mutex(true, "OtlpMonitor_SingleInstance", out isNew);
+            _mutex = new Mutex(true, "WindowsMetrics_SingleInstance", out isNew);
         }
         catch (AbandonedMutexException)
         {

@@ -6,7 +6,7 @@ namespace WindowsMetrics.Tests;
 
 /// <summary>
 /// Exercises AppSettings against a throwaway HKCU test key so these tests never touch the
-/// real "Software\DIOTLPGUI" key a developer's machine might already have configured.
+/// real "Software\WindowsMetrics" key a developer's machine might already have configured.
 /// </summary>
 public sealed class AppSettingsTests : IDisposable
 {

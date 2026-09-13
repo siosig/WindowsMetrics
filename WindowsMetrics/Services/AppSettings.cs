@@ -6,7 +6,7 @@ namespace WindowsMetrics.Services;
 
 public class AppSettings
 {
-    public const string DefaultRegPath = @"Software\DIOTLPGUI";
+    public const string DefaultRegPath = @"Software\WindowsMetrics";
 
     private readonly string _regPath;
 

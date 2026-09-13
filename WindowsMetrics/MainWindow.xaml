@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sec="clr-namespace:WindowsMetrics.Views.Sections"
         xmlns:conv="clr-namespace:WindowsMetrics.Views.Converters"
-        Title="DIOTLP Monitor"
+        Title="WindowsMetrics"
         Icon="Assets/app.ico"
         Width="300" SizeToContent="Height"
         ResizeMode="CanResize"
@@ -24,7 +24,7 @@
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
                         <Ellipse Width="8" Height="8" ToolTip="{Binding ConnectionTooltip}"
                                  Fill="{Binding ConnectionState, Converter={StaticResource ConnState}}"/>
-                        <TextBlock Text="DIOTLP Monitor" Foreground="#80FFFFFF"
+                        <TextBlock Text="WindowsMetrics" Foreground="#80FFFFFF"
                                    FontFamily="Segoe UI Variable Text" FontSize="11"
                                    VerticalAlignment="Center" Margin="6,0,0,0"/>
                     </StackPanel>

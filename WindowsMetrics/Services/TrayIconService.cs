@@ -25,7 +25,7 @@ public class TrayIconService : IDisposable
         _notifyIcon = new NotifyIcon
         {
             Icon = icon,
-            Text = "DIOTLP Monitor",
+            Text = "WindowsMetrics",
             ContextMenuStrip = menu,
             Visible = true
         };

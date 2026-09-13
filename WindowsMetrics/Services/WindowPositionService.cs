@@ -4,7 +4,7 @@ namespace WindowsMetrics.Services;
 
 public static class WindowPositionService
 {
-    private const string RegPath = @"Software\DIOTLPGUI";
+    private const string RegPath = @"Software\WindowsMetrics";
 
     public static (double Left, double Top, double Width)? Load()
     {
