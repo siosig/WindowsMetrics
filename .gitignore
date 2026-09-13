@@ -55,3 +55,5 @@ Thumbs.db
 ## Spec Kit docs (not source code)
 # specs/ is intentionally tracked
 /publish/
+/tmp/
+/report/
