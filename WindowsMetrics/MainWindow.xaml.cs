@@ -73,13 +73,13 @@ public partial class MainWindow : Window
         }
         else
         {
-            // デフォルト: 右上
+            // Default: top-right
             var screen = System.Windows.SystemParameters.WorkArea;
             Left = screen.Right - Width - 16;
             Top = screen.Top + 16;
         }
 
-        // カレンダー折り畳み状態を復元
+        // Restore calendar collapsed state
         if (_appSettings.IsCalendarExpanded)
         {
             CalendarContent.Visibility = Visibility.Visible;
@@ -93,7 +93,7 @@ public partial class MainWindow : Window
             DtSection.StopTimer();
         }
 
-        // フォント設定コンボボックスを初期化
+        // Initialize font settings combo box
         _suppressFontEvents = true;
         var families = System.Windows.Media.Fonts.SystemFontFamilies
             .Select(f => f.Source)

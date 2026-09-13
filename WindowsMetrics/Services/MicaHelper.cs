@@ -29,11 +29,11 @@ public static class MicaHelper
         var hwnd = new WindowInteropHelper(window).Handle;
         if (hwnd == IntPtr.Zero) return;
 
-        // ダークモード有効化
+        // Enable dark mode
         int dark = 1;
         DwmSetWindowAttribute(hwnd, (int)DWMWINDOWATTRIBUTE.DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
 
-        // Mica バックドロップ適用
+        // Apply Mica backdrop
         int mica = (int)DWM_SYSTEMBACKDROP_TYPE.DWMSBT_MAINWINDOW;
         DwmSetWindowAttribute(hwnd, (int)DWMWINDOWATTRIBUTE.DWMWA_SYSTEMBACKDROP_TYPE, ref mica, sizeof(int));
     }

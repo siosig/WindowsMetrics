@@ -85,7 +85,7 @@ public class MetricsParser
         return m.Success ? m.Groups[1].Value : string.Empty;
     }
 
-    // 各ドメインの最後に受け取った値を保持（部分更新用）
+    // Holds the most recently received value for each domain (used for partial updates)
     private MemoryInfo _latestMemory = new();
     private CpuInfo _latestCpu = new();
     private SystemObjectsInfo _latestSystem = new();
@@ -98,7 +98,7 @@ public class MetricsParser
 
     public MetricsSnapshot Parse(IReadOnlyList<FlatMetric> flat)
     {
-        // 含まれているドメインだけ更新し、他は最後の値を維持する
+        // Update only the domains present in this batch; keep the previous value for the rest
         if (flat.Any(f => f.Name == "lhm_memory_temperature_celsius"))
             UpdateDimmTemperatures(flat);
         if (flat.Any(f => f.Name.StartsWith("windows_memory_") || f.Name == "lhm_memory_temperature_celsius"))
@@ -157,8 +157,8 @@ public class MetricsParser
         if (total > 0) _memTotalBytes = total;
         if (_memTotalBytes <= 0) _memTotalBytes = 1;
 
-        // windows_memory_* が無く lhm_memory_temperature_celsius のみのバッチでは、
-        // 既存の最新値を引き継いで温度フィールドだけ差し替える。
+        // For a batch that has no windows_memory_* series and only lhm_memory_temperature_celsius,
+        // carry over the existing latest values and replace only the temperature fields.
         bool hasWindowsMem = flat.Any(f => f.Name.StartsWith("windows_memory_"));
         double availableBytes = hasWindowsMem ? available : _latestMemory.AvailableBytes;
         double totalBytes = hasWindowsMem ? _memTotalBytes : (_latestMemory.TotalBytes > 0 ? _latestMemory.TotalBytes : _memTotalBytes);
@@ -190,8 +190,8 @@ public class MetricsParser
 
     private void UpdateDimmTemperatures(IReadOnlyList<FlatMetric> flat)
     {
-        // 「過去値で穴埋めしない」ため、当バッチに DIMM 温度サンプルが含まれていれば
-        // dict をクリアしてから当バッチ分のみを入れ直す。
+        // To avoid backfilling with stale values, whenever this batch contains DIMM temperature
+        // samples, clear the dict first and repopulate it with only this batch's samples.
         _dimmIdToTempC.Clear();
         foreach (var f in flat.Where(f => f.Name == "lhm_memory_temperature_celsius"))
         {
@@ -265,9 +265,9 @@ public class MetricsParser
 
     private GpuInfo ParseGpu(IReadOnlyList<FlatMetric> flat)
     {
-        // windows_gpu_engine_time_seconds: 累積秒数（プロセス起動からの合計GPU時間）
-        // IsCumulative=False でも実態は単調増加カウンター → CounterTracker でレートを計算
-        // sum(rate_i) per engtype = GPU使用率 (sec/sec = fraction)、*100でパーセント
+        // windows_gpu_engine_time_seconds: cumulative seconds (total GPU time since process start)
+        // Even though IsCumulative=False, it is actually a monotonically increasing counter -> compute the rate via CounterTracker
+        // sum(rate_i) per engtype = GPU usage (sec/sec = fraction); *100 for percent
         var gpuPoints = flat.Where(f => f.Name == "windows_gpu_engine_time_seconds").ToList();
         if (gpuPoints.Count == 0) return new GpuInfo { OverallPercent = _latestGpu.OverallPercent };
 
@@ -315,8 +315,8 @@ public class MetricsParser
 
     private static HardwareTemperatures ParseTemperatures(IReadOnlyList<FlatMetric> flat)
     {
-        // windows_thermalzone_temperature_celsius: システム温度帯域ゾーン
-        // CPU Package温度は現バージョンのwindows_exporterでは未提供
+        // windows_thermalzone_temperature_celsius: system thermal zone
+        // CPU package temperature is not provided by the current version of windows_exporter
         double? thermalZone = GetNullableGauge(flat, "windows_thermalzone_temperature_celsius");
 
         return new HardwareTemperatures
@@ -366,10 +366,10 @@ public class MetricsParser
         var letter = volume.TrimEnd(':');
         if (!_driveToModel.TryGetValue(letter, out var model)) return 0;
 
-        // 完全一致
+        // Exact match
         if (_modelToTemp.TryGetValue(model, out var temp)) return temp;
 
-        // LHM が "HIKVISION HS-SSD-FUTURE 1024G" のようにブランド名を付加する場合のフォールバック
+        // Fallback for when LHM prepends a brand name, e.g. "HIKVISION HS-SSD-FUTURE 1024G"
         foreach (var kv in _modelToTemp)
         {
             if (kv.Key.Contains(model, StringComparison.OrdinalIgnoreCase) ||

@@ -5,8 +5,8 @@ namespace WindowsMetrics.Models;
 
 public class BiDirSparklineBuffer
 {
-    private readonly double[] _pos; // 上方向（RX）
-    private readonly double[] _neg; // 下方向（TX）
+    private readonly double[] _pos; // Upward direction (RX)
+    private readonly double[] _neg; // Downward direction (TX)
     private int _head, _count;
     public int Capacity => _pos.Length;
 
@@ -40,7 +40,7 @@ public class BiDirSparklineBuffer
         return (p, n);
     }
 
-    // RX=中心から上、TX=中心から下。2本のPointCollectionを返す。
+    // RX = above the center line, TX = below the center line. Returns two PointCollections.
     public (PointCollection Pos, PointCollection Neg) ToPoints(double width, double height)
     {
         var posPts = new PointCollection();

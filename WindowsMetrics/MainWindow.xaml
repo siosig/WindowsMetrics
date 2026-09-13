@@ -17,7 +17,7 @@
     <Border Background="#E6101010" CornerRadius="10"
             BorderBrush="#20FFFFFF" BorderThickness="1">
         <StackPanel>
-            <!-- タイトルバー -->
+            <!-- Title bar -->
             <Border x:Name="TitleBar" Height="28" CornerRadius="10,10,0,0"
                     Background="#10FFFFFF" MouseLeftButtonDown="TitleBar_MouseDown">
                 <Grid>
@@ -79,20 +79,20 @@
                     </StackPanel>
                 </Grid>
             </Border>
-            <!-- セクション -->
+            <!-- Sections -->
             <StackPanel Margin="0,2,0,6">
-                <!-- 設定パネル -->
+                <!-- Settings panel -->
                 <Border x:Name="SettingsPanel" Visibility="Collapsed"
                         CornerRadius="8" Background="#10FFFFFF" Margin="6,3" Padding="10,8"
                         BorderBrush="#12FFFFFF" BorderThickness="1">
                     <StackPanel>
-                        <TextBlock Text="フォント設定" Foreground="#C0FFFFFF" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock Text="Font settings" Foreground="#C0FFFFFF" FontWeight="SemiBold" Margin="0,0,0,6"/>
                         <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="70"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="フォント名" Foreground="#80FFFFFF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="0" Text="Font" Foreground="#80FFFFFF" VerticalAlignment="Center"/>
                             <ComboBox x:Name="FontFamilyCb" Grid.Column="1"
                                       SelectionChanged="FontFamilyCb_SelectionChanged"
                                       Background="#2A2A2A" Foreground="#E0E0E0" BorderBrush="#505050">
@@ -115,7 +115,7 @@
                                 <ColumnDefinition Width="70"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="サイズ" Foreground="#80FFFFFF" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="0" Text="Size" Foreground="#80FFFFFF" VerticalAlignment="Center"/>
                             <ComboBox x:Name="FontSizeCb" Grid.Column="1"
                                       SelectionChanged="FontSizeCb_SelectionChanged"
                                       Background="#2A2A2A" Foreground="#E0E0E0" BorderBrush="#505050">
@@ -135,12 +135,12 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-                <!-- カレンダー・時刻（折り畳み） -->
+                <!-- Calendar & time (collapsible) -->
                 <Border CornerRadius="8" Background="#08FFFFFF" Margin="6,3"
                         BorderBrush="#12FFFFFF" BorderThickness="1">
                     <StackPanel>
                         <Grid MouseLeftButtonDown="CalendarHeader_Toggle" Cursor="Hand" Margin="10,6">
-                            <TextBlock Text="📅 日時" Foreground="#A0FFFFFF"/>
+                            <TextBlock Text="📅 Date &amp; time" Foreground="#A0FFFFFF"/>
                             <TextBlock x:Name="CalendarToggle" Text="▶"
                                        HorizontalAlignment="Right" Foreground="#60FFFFFF"/>
                         </Grid>

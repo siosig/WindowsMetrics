@@ -4,7 +4,7 @@
     <Border CornerRadius="8" Background="#08FFFFFF" BorderBrush="#12FFFFFF"
             BorderThickness="1" Padding="10,8" Margin="6,3">
         <StackPanel>
-            <!-- ヘッダー: 月ナビ -->
+            <!-- Header: month navigation -->
             <Grid Margin="0,0,0,4">
                 <Button x:Name="PrevBtn" Content="◀" Click="PrevBtn_Click"
                         HorizontalAlignment="Left" Width="20" Height="18"
@@ -18,9 +18,9 @@
                         Background="Transparent" BorderThickness="0"
                         Foreground="#80FFFFFF" FontSize="10" Cursor="Hand"/>
             </Grid>
-            <!-- 曜日ヘッダー -->
+            <!-- Day-of-week header -->
             <Grid x:Name="DowHeader" Margin="0,0,0,2"/>
-            <!-- 日付グリッド -->
+            <!-- Date grid -->
             <Grid x:Name="DaysGrid"/>
         </StackPanel>
     </Border>

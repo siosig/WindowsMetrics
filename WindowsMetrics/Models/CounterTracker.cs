@@ -1,8 +1,8 @@
 namespace WindowsMetrics.Models;
 
 /// <summary>
-/// CUMULATIVE カウンターメトリクスの差分 (units/sec) を計算する。
-/// 初回 or カウンターリセット (負差分) 時は null を返す。
+/// Computes the rate of change (units/sec) from a CUMULATIVE counter metric.
+/// Returns null on the first call, or when the counter resets (negative delta).
 /// </summary>
 public class CounterTracker
 {

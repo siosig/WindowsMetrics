@@ -18,9 +18,9 @@ public class TrayIconService : IDisposable
         var icon = File.Exists(iconPath) ? new Icon(iconPath) : SystemIcons.Application;
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add("設定", null, (_, _) => OnSettings());
+        menu.Items.Add("Settings", null, (_, _) => OnSettings());
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("終了", null, (_, _) => OnExit());
+        menu.Items.Add("Exit", null, (_, _) => OnExit());
 
         _notifyIcon = new NotifyIcon
         {
