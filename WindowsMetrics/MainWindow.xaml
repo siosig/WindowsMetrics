@@ -4,7 +4,6 @@
         xmlns:sec="clr-namespace:WindowsMetrics.Views.Sections"
         xmlns:conv="clr-namespace:WindowsMetrics.Views.Converters"
         Title="WindowsMetrics"
-        Icon="Assets/app.ico"
         Width="300" SizeToContent="Height"
         ResizeMode="CanResize"
         WindowStyle="None"

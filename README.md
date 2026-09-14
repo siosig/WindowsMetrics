@@ -115,9 +115,11 @@ If `winget configure` isn't available in your environment, the same end state ca
 git clone git@github.com:siosig/WindowsMetrics.git
 cd WindowsMetrics
 dotnet build WindowsMetrics.slnx -c Release
-# or, for a self-contained single-folder build like the Release zip:
-dotnet publish WindowsMetrics/WindowsMetrics.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+# or, to build a single self-contained WindowsMetrics.exe (same as the Release download):
+dotnet publish WindowsMetrics/WindowsMetrics.csproj -c Release -o publish/win-x64
 ```
+
+`dotnet publish` produces a single `WindowsMetrics.exe` in `publish/win-x64` — no separate DLLs or runtime files, no `-r`/`--self-contained` flags needed (the project targets `win-x64` and self-contained by default for publishing).
 
 ## Verify it's working
 

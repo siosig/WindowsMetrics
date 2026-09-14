@@ -115,9 +115,11 @@ winget configure          -f .config/configuration.winget --accept-configuration
 git clone git@github.com:siosig/WindowsMetrics.git
 cd WindowsMetrics
 dotnet build WindowsMetrics.slnx -c Release
-# Releases の zip と同様の自己完結型ビルドを作る場合:
-dotnet publish WindowsMetrics/WindowsMetrics.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+# Releases のダウンロードと同じ、自己完結の単一 WindowsMetrics.exe を作る場合:
+dotnet publish WindowsMetrics/WindowsMetrics.csproj -c Release -o publish/win-x64
 ```
+
+`dotnet publish` を実行すると `publish/win-x64` に単一の `WindowsMetrics.exe` が生成される。個別の DLL やランタイムファイルは含まれず、`-r`・`--self-contained` の指定も不要（プロジェクト側で win-x64・自己完結が publish 時の既定になっている）。
 
 ## 動作確認
 
