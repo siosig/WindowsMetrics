@@ -19,10 +19,10 @@ public class MetricsParser
         "windows_cpu_",
         "windows_memory_",
         "windows_process_working_set_bytes",
-        "windows_process_cpu_time_total",
+        "windows_process_cpu_time_seconds_total",
         "windows_logical_disk_",
         "windows_net_bytes_",
-        "windows_gpu_engine_time_seconds",
+        "windows_gpu_engine_time_seconds_total",
         "windows_thermalzone_temperature_celsius",
         "lhm_memory_temperature_celsius",
         "lhm_storage_temperature_celsius",
@@ -131,7 +131,7 @@ public class MetricsParser
             _lhmCpuPackageC = HardwareSensorSelector.SelectCpuPackage(flat);
             _cpuCoreStats = HardwareSensorSelector.SelectCpuCoreStats(flat);
         }
-        if (flat.Any(f => f.Name == "windows_gpu_engine_time_seconds"))
+        if (flat.Any(f => f.Name == "windows_gpu_engine_time_seconds_total"))
             _latestGpu = ParseGpu(flat);
         if (flat.Any(f => GpuTemperatureMetricNames.Contains(f.Name)))
         {
@@ -152,9 +152,9 @@ public class MetricsParser
             UpdatePidNames(flat, "windows_process_working_set_bytes");
             _latestTopMemProc = ParseTopMemoryProcesses(flat);
         }
-        if (flat.Any(f => f.Name == "windows_process_cpu_time_total"))
+        if (flat.Any(f => f.Name == "windows_process_cpu_time_seconds_total"))
         {
-            UpdatePidNames(flat, "windows_process_cpu_time_total");
+            UpdatePidNames(flat, "windows_process_cpu_time_seconds_total");
             _latestTopCpuProc = ParseTopCpuProcesses(flat);
         }
 
@@ -194,7 +194,7 @@ public class MetricsParser
     {
         double total = GetGauge(flat, "windows_memory_physical_total_bytes");
         double available = GetGauge(flat, "windows_memory_available_bytes");
-        double commitLimit = GetGauge(flat, "windows_memory_commit_limit");
+        double commitLimit = GetGauge(flat, "windows_memory_commit_limit_bytes");
         double committed = GetGauge(flat, "windows_memory_committed_bytes");
 
         if (total > 0) _memTotalBytes = total;
@@ -250,11 +250,11 @@ public class MetricsParser
 
     private CpuInfo ParseCpu(IReadOnlyList<FlatMetric> flat)
     {
-        double? dpc    = GetCpuModeRate(flat, "windows_cpu_time_total", "mode", "dpc");
-        double? intr   = GetCpuModeRate(flat, "windows_cpu_time_total", "mode", "interrupt");
-        double? user   = GetCpuModeRate(flat, "windows_cpu_time_total", "mode", "user");
-        double? priv   = GetCpuModeRate(flat, "windows_cpu_time_total", "mode", "privileged");
-        double? idle   = GetCpuModeRate(flat, "windows_cpu_time_total", "mode", "idle");
+        double? dpc    = GetCpuModeRate(flat, "windows_cpu_time_seconds_total", "mode", "dpc");
+        double? intr   = GetCpuModeRate(flat, "windows_cpu_time_seconds_total", "mode", "interrupt");
+        double? user   = GetCpuModeRate(flat, "windows_cpu_time_seconds_total", "mode", "user");
+        double? priv   = GetCpuModeRate(flat, "windows_cpu_time_seconds_total", "mode", "privileged");
+        double? idle   = GetCpuModeRate(flat, "windows_cpu_time_seconds_total", "mode", "idle");
         double? c1     = GetCpuModeRate(flat, "windows_cpu_cstate_seconds_total", "state", "c1");
         double? c2     = GetCpuModeRate(flat, "windows_cpu_cstate_seconds_total", "state", "c2");
         double? c3     = GetCpuModeRate(flat, "windows_cpu_cstate_seconds_total", "state", "c3");
@@ -298,10 +298,10 @@ public class MetricsParser
 
     private GpuInfo ParseGpu(IReadOnlyList<FlatMetric> flat)
     {
-        // windows_gpu_engine_time_seconds: cumulative seconds (total GPU time since process start)
+        // windows_gpu_engine_time_seconds_total: cumulative seconds (total GPU time since process start)
         // Even though IsCumulative=False, it is actually a monotonically increasing counter -> compute the rate via CounterTracker
         // sum(rate_i) per engtype = GPU usage (sec/sec = fraction); *100 for percent
-        var gpuPoints = flat.Where(f => f.Name == "windows_gpu_engine_time_seconds").ToList();
+        var gpuPoints = flat.Where(f => f.Name == "windows_gpu_engine_time_seconds_total").ToList();
         if (gpuPoints.Count == 0) return new GpuInfo { OverallPercent = _latestGpu.OverallPercent };
 
         var byEngine = new Dictionary<string, double>();
@@ -439,7 +439,7 @@ public class MetricsParser
     private ProcessSnapshot[] ParseTopCpuProcesses(IReadOnlyList<FlatMetric> flat)
     {
         var result = new List<ProcessSnapshot>();
-        var groups = flat.Where(f => f.Name == "windows_process_cpu_time_total" && f.IsCumulative)
+        var groups = flat.Where(f => f.Name == "windows_process_cpu_time_seconds_total" && f.IsCumulative)
                          .Where(f => f.Labels.GetValueOrDefault("process", "") is not ("Idle" or "_Total"))
                          .GroupBy(f => (
                              f.Labels.GetValueOrDefault("process", ""),

@@ -55,7 +55,7 @@ winget configure test     -f .config/configuration.winget
 winget configure          -f .config/configuration.winget --accept-configuration-agreements
 ```
 
-これにより、windows_exporter が Windows サービスとして導入され（コレクタ: `cpu,memory,system,logical_disk,net,process,gpu,thermalzone`、`127.0.0.1:9182` のみで待ち受け、ファイアウォール例外なし）、LibreHardwareMonitor が winget で導入され、リモート Web サーバーがポート 8085 で有効化され、管理者権限でログオン時に起動するタスクが登録され、ポート 8085 へのインバウンド接続がブロックされる（LibreHardwareMonitor はループバック限定にできないため、ファイアウォールで代替する）。初回実行時は必要な DSC モジュール（`Microsoft.WinGet.DSC`、`PSDscResources`）が PowerShell Gallery から自動取得される。
+これにより、windows_exporter が Windows サービスとして導入され（コレクタ: `cpu,memory,system,logical_disk,net,process,gpu`、`127.0.0.1:9182` のみで待ち受け、ファイアウォール例外なし）、LibreHardwareMonitor が winget で導入され、リモート Web サーバーがポート 8085 で有効化され、管理者権限でログオン時に起動するタスクが登録され、ポート 8085 へのインバウンド接続がブロックされる（LibreHardwareMonitor はループバック限定にできないため、ファイアウォールで代替する）。初回実行時は必要な DSC モジュール（`Microsoft.WinGet.DSC`、`PSDscResources`）が PowerShell Gallery から自動取得される。
 
 `winget configure` の再実行は安全（すでに望む状態の項目には手を加えない）。
 
@@ -69,7 +69,7 @@ winget configure          -f .config/configuration.winget --accept-configuration
 
    ```yaml
    collectors:
-     enabled: cpu,memory,system,logical_disk,net,process,gpu,thermalzone
+     enabled: cpu,memory,system,logical_disk,net,process,gpu
    web:
      listen-address: 127.0.0.1:9182
    log:
@@ -129,14 +129,11 @@ WindowsMetrics を起動する前に、両エンドポイントが期待どお�
 
 ```powershell
 $lines = (Invoke-WebRequest -Uri "http://127.0.0.1:9182/metrics" -UseBasicParsing).Content -split "`n"
-$lines | Select-String "^windows_thermalzone_temperature_celsius"   # CPU 温度のフォールバック
 $lines | Select-String "^windows_process_working_set_bytes"          # プロセス一覧
-$lines | Select-String "^windows_gpu_engine_time_seconds"            # GPU 使用率
+$lines | Select-String "^windows_gpu_engine_time_seconds_total"            # GPU 使用率
 ```
 
-3 つとも 1 行以上返れば `process` / `gpu` / `thermalzone` が有効。空なら `ENABLED_COLLECTORS`（または `config.yaml` の `collectors.enabled`）の指定漏れ。
-
-`thermalzone` だけ空の場合、マシンが ACPI サーマルゾーンを公開していない可能性がある。これが影響するのは、LibreHardwareMonitor が使えないときの CPU 温度フォールバックだけ（後述）。
+2 つとも 1 行以上返れば `process` / `gpu` が有効。空なら `ENABLED_COLLECTORS`（または `config.yaml` の `collectors.enabled`）の指定漏れ。
 
 **LibreHardwareMonitor — 各温度センサーが取れるか**
 
@@ -169,7 +166,7 @@ $lhm | Select-String "^lhm_memory_temperature_celsius"                 # DIMM（
 ```powershell
 Set-ItemProperty -Path 'HKCU:\Software\WindowsMetrics' -Name 'WindowsExporterIntervalMs' -Value 2000 -Type DWord
 Set-ItemProperty -Path 'HKCU:\Software\WindowsMetrics' -Name 'WindowsExporterUrl' `
-  -Value 'http://127.0.0.1:9182/metrics?collect[]=cpu&collect[]=memory&collect[]=system&collect[]=logical_disk&collect[]=net&collect[]=gpu&collect[]=thermalzone' -Type String
+  -Value 'http://127.0.0.1:9182/metrics?collect[]=cpu&collect[]=memory&collect[]=system&collect[]=logical_disk&collect[]=net&collect[]=gpu' -Type String
 ```
 
 （クエリ文字列から `process` を外すと、プロセス Top5 の表示は空になる。このデータは `process` コレクタからしか取れないため。）

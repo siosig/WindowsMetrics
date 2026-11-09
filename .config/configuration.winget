@@ -28,7 +28,7 @@ properties:
           $configPath = Join-Path $env:ProgramData 'windows_exporter\config.yaml'
           $expected = @'
           collectors:
-            enabled: cpu,memory,system,logical_disk,net,process,gpu,thermalzone
+            enabled: cpu,memory,system,logical_disk,net,process,gpu
           web:
             listen-address: 127.0.0.1:9182
           log:
@@ -64,7 +64,7 @@ properties:
           $configPath = Join-Path $configDir 'config.yaml'
           @'
           collectors:
-            enabled: cpu,memory,system,logical_disk,net,process,gpu,thermalzone
+            enabled: cpu,memory,system,logical_disk,net,process,gpu
           web:
             listen-address: 127.0.0.1:9182
           log:

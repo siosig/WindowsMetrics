@@ -55,7 +55,7 @@ winget configure test     -f .config/configuration.winget
 winget configure          -f .config/configuration.winget --accept-configuration-agreements
 ```
 
-This installs windows_exporter as a Windows service (collectors: `cpu,memory,system,logical_disk,net,process,gpu,thermalzone`, bound to `127.0.0.1:9182` only, no firewall exception), installs LibreHardwareMonitor via winget, enables its remote web server on port 8085, registers a logon task that starts it with administrator rights, and blocks inbound connections to port 8085 (LibreHardwareMonitor cannot be restricted to loopback only, so the firewall does that job instead). The first run downloads the required DSC modules (`Microsoft.WinGet.DSC`, `PSDscResources`) from the PowerShell Gallery.
+This installs windows_exporter as a Windows service (collectors: `cpu,memory,system,logical_disk,net,process,gpu`, bound to `127.0.0.1:9182` only, no firewall exception), installs LibreHardwareMonitor via winget, enables its remote web server on port 8085, registers a logon task that starts it with administrator rights, and blocks inbound connections to port 8085 (LibreHardwareMonitor cannot be restricted to loopback only, so the firewall does that job instead). The first run downloads the required DSC modules (`Microsoft.WinGet.DSC`, `PSDscResources`) from the PowerShell Gallery.
 
 Re-running `winget configure` is safe — it only changes what's not already in the desired state.
 
@@ -69,7 +69,7 @@ If `winget configure` isn't available in your environment, the same end state ca
 
    ```yaml
    collectors:
-     enabled: cpu,memory,system,logical_disk,net,process,gpu,thermalzone
+     enabled: cpu,memory,system,logical_disk,net,process,gpu
    web:
      listen-address: 127.0.0.1:9182
    log:
@@ -129,14 +129,11 @@ Before launching WindowsMetrics, confirm both endpoints respond as expected.
 
 ```powershell
 $lines = (Invoke-WebRequest -Uri "http://127.0.0.1:9182/metrics" -UseBasicParsing).Content -split "`n"
-$lines | Select-String "^windows_thermalzone_temperature_celsius"   # CPU temperature fallback
 $lines | Select-String "^windows_process_working_set_bytes"          # process list
-$lines | Select-String "^windows_gpu_engine_time_seconds"            # GPU usage
+$lines | Select-String "^windows_gpu_engine_time_seconds_total"            # GPU usage
 ```
 
-If all three return at least one line, `process` / `gpu` / `thermalzone` are enabled. Empty output means `ENABLED_COLLECTORS` (or `config.yaml`'s `collectors.enabled`) is missing one of them.
-
-If only `thermalzone` is empty, your machine likely doesn't expose an ACPI thermal zone — that only affects the CPU temperature fallback used when LibreHardwareMonitor is unavailable (see below).
+If both return at least one line, `process` / `gpu` are enabled. Empty output means `ENABLED_COLLECTORS` (or `config.yaml`'s `collectors.enabled`) is missing one of them.
 
 **LibreHardwareMonitor — are the temperature sensors reachable?**
 
@@ -169,7 +166,7 @@ Restart WindowsMetrics after changing any value for it to take effect. Example: 
 ```powershell
 Set-ItemProperty -Path 'HKCU:\Software\WindowsMetrics' -Name 'WindowsExporterIntervalMs' -Value 2000 -Type DWord
 Set-ItemProperty -Path 'HKCU:\Software\WindowsMetrics' -Name 'WindowsExporterUrl' `
-  -Value 'http://127.0.0.1:9182/metrics?collect[]=cpu&collect[]=memory&collect[]=system&collect[]=logical_disk&collect[]=net&collect[]=gpu&collect[]=thermalzone' -Type String
+  -Value 'http://127.0.0.1:9182/metrics?collect[]=cpu&collect[]=memory&collect[]=system&collect[]=logical_disk&collect[]=net&collect[]=gpu' -Type String
 ```
 
 (Dropping `process` from that query string means the process Top-5 sections go blank, since that data comes only from the `process` collector.)

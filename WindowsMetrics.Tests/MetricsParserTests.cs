@@ -33,7 +33,7 @@ public class MetricsParserTests
     public void Parse_CpuCounter_FirstCall_ReturnsZero()
     {
         var parser = new MetricsParser();
-        var flat = BuildRequest("windows_cpu_time_total", 100,
+        var flat = BuildRequest("windows_cpu_time_seconds_total", 100,
             new Dictionary<string, string> { ["mode"] = "idle", ["core"] = "0" }, isCumulative: true);
         var snapshot = parser.Parse(flat);
         // First sample has no prior sample to diff against, so no rate can be computed yet.
@@ -94,7 +94,7 @@ public class MetricsParserTests
         var parser = new MetricsParser();
         parser.Parse(LhmTemperature("lhm_cpu_temperature_celsius", "CPU Package", 50.5));
 
-        var weCpuBatch = BuildRequest("windows_cpu_time_total", 100,
+        var weCpuBatch = BuildRequest("windows_cpu_time_seconds_total", 100,
             new Dictionary<string, string> { ["mode"] = "idle", ["core"] = "0" }, isCumulative: true);
         var snapshot = parser.Parse(weCpuBatch);
 

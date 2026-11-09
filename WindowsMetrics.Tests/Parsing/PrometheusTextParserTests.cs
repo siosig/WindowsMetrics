@@ -158,7 +158,7 @@ public class PrometheusTextParserTests
     [Fact]
     public void Parse_NamePrefixFilter_ExcludesNonMatchingMetrics()
     {
-        var text = "windows_cpu_time_total 1\nlhm_memory_temperature_celsius 45\nunrelated_metric 9";
+        var text = "windows_cpu_time_seconds_total 1\nlhm_memory_temperature_celsius 45\nunrelated_metric 9";
         var result = PrometheusTextParser.Parse(new StringReader(text), TimeNano,
             namePrefixFilter: ["windows_cpu_", "lhm_memory_temperature_celsius"]);
         Assert.Equal(2, result.Count);
