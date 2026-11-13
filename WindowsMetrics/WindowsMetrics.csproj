@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net11.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
@@ -12,22 +12,11 @@
   </PropertyGroup>
 
   <!--
-    ExcludeFromSingleFile keeps these as loose files next to the published exe.
-    Without it, PublishSingleFile's bundler silently absorbs Assets\app.ico
-    (verified via `dotnet publish -v:diag`: it is offered to the GenerateBundle
-    task's FilesToBundle, unlike app.png, likely because it doubles as
-    ApplicationIcon) instead of copying it, which breaks TrayIconService's
-    AppContext.BaseDirectory-relative File.Exists lookup at runtime.
+    The icon is embedded as a manifest resource so the published output is a single exe.
+    AppIconResource reads it back by LogicalName.
   -->
   <ItemGroup>
-    <Content Include="Assets\app.ico">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
-    <Content Include="Assets\app.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
+    <EmbeddedResource Include="Assets\app.ico" LogicalName="WindowsMetrics.Assets.app.ico" />
   </ItemGroup>
 
   <!--
@@ -38,6 +27,11 @@
     `dotnet publish` and leave regular debug/release builds untouched.
     PublishTrimmed is false because WinForms relies on COM marshalling and is not
     trim-safe. PublishReadyToRun speeds up startup without requiring trimming.
+    CopyOutputSymbolsToPublishDirectory=false keeps the .pdb in bin/ but out of the
+    published output, so publishing yields WindowsMetrics.exe only.
+    IncludeAllContentForSelfExtract=true is required on .NET 11: without it the
+    exe crashes at startup (BadImageFormatException on the mixed-mode
+    DirectWriteForwarder.dll) because that assembly cannot load from the bundle.
   -->
   <PropertyGroup>
     <PublishRuntimeIdentifier>win-x64</PublishRuntimeIdentifier>
@@ -45,14 +39,16 @@
     <PublishSingleFile>true</PublishSingleFile>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishReadyToRun>true</PublishReadyToRun>
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Management" Version="10.0.12" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
+    <PackageReference Include="System.Management" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
   </ItemGroup>

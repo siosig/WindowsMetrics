@@ -1,4 +1,3 @@
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -20,14 +19,14 @@ public partial class MainWindow : Window
         _appSettings = appSettings;
         DataContext = vm;
 
-        // Can't set Icon from a relative pack URI in XAML: WPF's SiteOfOrigin
-        // resolution needs Assembly.Location, which is empty for single-file
-        // publish and crashes InitializeComponent() with ArgumentNullException.
-        // Load it from disk instead, the same way TrayIconService does.
-        var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
-        if (File.Exists(iconPath))
+        // Load the icon from the embedded manifest resource: a relative pack URI in XAML
+        // needs Assembly.Location (empty in single-file publish) and crashes InitializeComponent().
+        using (var iconStream = AppIconResource.OpenStream())
         {
-            Icon = BitmapFrame.Create(new Uri(iconPath, UriKind.Absolute));
+            if (iconStream is not null)
+            {
+                Icon = BitmapFrame.Create(iconStream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+            }
         }
 
         vm.SnapshotApplied += () =>

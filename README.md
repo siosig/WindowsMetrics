@@ -1,6 +1,6 @@
 # WindowsMetrics
 
-A lightweight, always-on-top-free system monitor widget for Windows 11 (WPF / .NET 10). It shows CPU, memory, GPU, disk, network, and temperature sensors right on your desktop.
+A lightweight, always-on-top-free system monitor widget for Windows 11 (WPF / .NET 11). It shows CPU, memory, GPU, disk, network, and temperature sensors right on your desktop.
 
 > Japanese version: [README.ja.md](README.ja.md)
 
@@ -40,7 +40,7 @@ WindowsMetrics never opens a listening port of its own; it only makes outbound H
 | Item | Requirement |
 | --- | --- |
 | OS | Windows 10 (21H2+) or Windows 11, or Windows Server 2016+ (windows_exporter has known compatibility issues on Server 2012 R2 and earlier) |
-| .NET | The Releases zip is self-contained (bundles its own .NET 10 runtime) — no separate install needed. Building from source requires the [.NET 10 SDK](https://dotnet.microsoft.com/download) |
+| .NET | The Releases zip is self-contained (bundles its own .NET 11 runtime) — no separate install needed. Building from source requires the [.NET 11 SDK](https://dotnet.microsoft.com/download) (11.0.100 or a later 11.0.x, pinned by `global.json`). Requires an x86-64-v2 or newer CPU (any PC that meets the Windows 11 requirements qualifies). |
 | Privileges | WindowsMetrics itself runs as a standard user. **LibreHardwareMonitor requires administrator rights.** windows_exporter runs as a Windows service under SYSTEM |
 
 ## Install the dependencies
@@ -106,7 +106,7 @@ If `winget configure` isn't available in your environment, the same end state ca
 ### Option A: Download the release (recommended)
 
 1. Download `WindowsMetrics-vX.Y.Z-win-x64.zip` from the [Releases](../../releases) page.
-2. Extract it anywhere and run `WindowsMetrics.exe`. It's self-contained; no .NET runtime install is required.
+2. Extract it anywhere and run `WindowsMetrics.exe`. The zip contains just that one file, so you can put it in any folder and run it from there. It's self-contained; no .NET runtime install is required.
 3. Because the executable isn't code-signed, Windows SmartScreen may show an "unrecognized app" warning the first time you run it. Click **More info** → **Run anyway**. This is expected for an unsigned open-source binary — there's no code-signing certificate behind this project.
 
 ### Option B: Build from source
@@ -119,7 +119,7 @@ dotnet build WindowsMetrics.slnx -c Release
 dotnet publish WindowsMetrics/WindowsMetrics.csproj -c Release -o publish/win-x64
 ```
 
-`dotnet publish` produces a single `WindowsMetrics.exe` in `publish/win-x64` — no separate DLLs or runtime files, no `-r`/`--self-contained` flags needed (the project targets `win-x64` and self-contained by default for publishing).
+`dotnet publish` writes exactly one file, `WindowsMetrics.exe`, to `publish/win-x64` (the icon is embedded in the exe and no `.pdb` is published) — no `-r`/`--self-contained` flags needed (the project targets `win-x64` and self-contained by default for publishing).
 
 ## Verify it's working
 

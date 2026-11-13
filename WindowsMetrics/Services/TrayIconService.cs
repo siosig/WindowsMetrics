@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 
@@ -14,8 +13,11 @@ public class TrayIconService : IDisposable
     {
         _mainWindow = mainWindow;
 
-        var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
-        var icon = File.Exists(iconPath) ? new Icon(iconPath) : SystemIcons.Application;
+        Icon icon;
+        using (var iconStream = AppIconResource.OpenStream())
+        {
+            icon = iconStream is not null ? new Icon(iconStream) : SystemIcons.Application;
+        }
 
         var menu = new ContextMenuStrip();
         menu.Items.Add("Settings", null, (_, _) => OnSettings());

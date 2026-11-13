@@ -1,6 +1,6 @@
 # WindowsMetrics
 
-Windows 11 向けの軽量なシステムモニターウィジェット（WPF / .NET 10）。CPU・メモリ・GPU・ディスク・ネットワーク・温度センサーをデスクトップ上に常時表示する。
+Windows 11 向けの軽量なシステムモニターウィジェット（WPF / .NET 11）。CPU・メモリ・GPU・ディスク・ネットワーク・温度センサーをデスクトップ上に常時表示する。
 
 > English version: [README.md](README.md)
 
@@ -40,7 +40,7 @@ WindowsMetrics 自身は待ち受けポートを一切開かない。2 つのロ
 | 項目 | 要件 |
 | --- | --- |
 | OS | Windows 10（21H2 以降）または Windows 11、あるいは Windows Server 2016 以降（windows_exporter 側に Server 2012 R2 以前との既知の互換性問題あり） |
-| .NET | Releases の zip は自己完結型（.NET 10 ランタイム同梱）で追加インストール不要。ソースからビルドする場合は [.NET 10 SDK](https://dotnet.microsoft.com/download) が必要 |
+| .NET | Releases の zip は自己完結型（.NET 11 ランタイム同梱）で追加インストール不要。ソースからビルドする場合は [.NET 11 SDK](https://dotnet.microsoft.com/download)（11.0.100 以降の 11.0.x。`global.json` で指定）が必要。x86-64-v2 以上の CPU が必要（Windows 11 の要件を満たす PC なら該当） |
 | 権限 | WindowsMetrics 本体は標準ユーザーで動作する。**LibreHardwareMonitor は管理者権限が必須。** windows_exporter は SYSTEM 権限の Windows サービスとして動作する |
 
 ## 依存ソフトの導入
@@ -106,7 +106,7 @@ winget configure          -f .config/configuration.winget --accept-configuration
 ### 方法 A: リリース版をダウンロード（推奨）
 
 1. [Releases](../../releases) ページから `WindowsMetrics-vX.Y.Z-win-x64.zip` をダウンロードする。
-2. 任意の場所に展開し `WindowsMetrics.exe` を実行する。自己完結型のため .NET ランタイムの追加インストールは不要。
+2. 任意の場所に展開し `WindowsMetrics.exe` を実行する。zip の中身は `WindowsMetrics.exe` 1 つだけで、任意の場所に置いて実行できる。自己完結型のため .NET ランタイムの追加インストールは不要。
 3. 実行ファイルはコード署名されていないため、初回実行時に Windows SmartScreen が「認識されないアプリ」と警告することがある。**詳細情報** → **実行** を選ぶ。署名証明書を持たないオープンソースの未署名バイナリでは想定内の挙動。
 
 ### 方法 B: ソースからビルド
@@ -119,7 +119,7 @@ dotnet build WindowsMetrics.slnx -c Release
 dotnet publish WindowsMetrics/WindowsMetrics.csproj -c Release -o publish/win-x64
 ```
 
-`dotnet publish` を実行すると `publish/win-x64` に単一の `WindowsMetrics.exe` が生成される。個別の DLL やランタイムファイルは含まれず、`-r`・`--self-contained` の指定も不要（プロジェクト側で win-x64・自己完結が publish 時の既定になっている）。
+`dotnet publish` を実行すると `publish/win-x64` に `WindowsMetrics.exe` の 1 ファイルだけが出力される（アイコンは exe に埋め込み、`.pdb` は出力しない）。`-r`・`--self-contained` の指定も不要（プロジェクト側で win-x64・自己完結が publish 時の既定になっている）。
 
 ## 動作確認
 

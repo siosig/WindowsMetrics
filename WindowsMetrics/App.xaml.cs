@@ -108,7 +108,18 @@ public partial class App : Application
         using (_host)
         {
             if (_host != null)
-                await _host.StopAsync(TimeSpan.FromSeconds(5));
+            {
+                try
+                {
+                    await _host.StopAsync(TimeSpan.FromSeconds(5));
+                }
+                catch (Exception ex)
+                {
+                    // Since .NET 11, StopAsync rethrows a BackgroundService's ExecuteAsync failure.
+                    // The failure was already logged by the host when it happened; keep shutting down.
+                    Log.Warning(ex, "Host stop reported a background service failure");
+                }
+            }
         }
         _mutex?.ReleaseMutex();
         _mutex?.Dispose();
