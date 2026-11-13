@@ -61,6 +61,23 @@ public class MetricsParserTests
     }
 
     [Fact]
+    public void Parse_DiskVolume_CalculatesUsagePercent()
+    {
+        var parser = new MetricsParser();
+        var metrics = new List<FlatMetric>
+        {
+            new("windows_logical_disk_size_bytes", new Dictionary<string, string> { ["volume"] = "C:" }, 1_000_000_000_000, 1_000_000_000, false),
+            new("windows_logical_disk_free_bytes", new Dictionary<string, string> { ["volume"] = "C:" }, 400_000_000_000, 1_000_000_000, false),
+        };
+        var snapshot = parser.Parse(metrics);
+        Assert.Single(snapshot.Disks);
+        Assert.Equal("C:", snapshot.Disks[0].DriveLetter);
+        var usagePercent = snapshot.Disks[0].UsagePercent;
+        Assert.NotNull(usagePercent);
+        Assert.Equal(60.0, usagePercent!.Value, 1); // (1T - 400G) / 1T = 60%
+    }
+
+    [Fact]
     public void Parse_EmptyBatch_PreservesLatestValues()
     {
         // A failed scrape passes an empty batch through so the connection-state update

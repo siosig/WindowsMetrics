@@ -376,6 +376,7 @@ public class MetricsParser
             WriteBytesPerSec = GetCounterRate(flat, "windows_logical_disk_write_bytes_total", "volume", vol),
             IopsRead         = GetCounterRate(flat, "windows_logical_disk_reads_total", "volume", vol),
             IopsWrite        = GetCounterRate(flat, "windows_logical_disk_writes_total", "volume", vol),
+            UsagePercent     = ComputeDiskUsagePercent(flat, vol),
         }).ToArray();
     }
 
@@ -396,6 +397,17 @@ public class MetricsParser
         }
 
         return 0;
+    }
+
+    private double? ComputeDiskUsagePercent(IReadOnlyList<FlatMetric> flat, string volume)
+    {
+        var sizeBytes = GetNullableGauge(flat, "windows_logical_disk_size_bytes", "volume", volume);
+        var freeBytes = GetNullableGauge(flat, "windows_logical_disk_free_bytes", "volume", volume);
+
+        if (sizeBytes > 0 && freeBytes.HasValue)
+            return Math.Clamp((sizeBytes.Value - freeBytes.Value) / sizeBytes.Value * 100, 0, 100);
+
+        return null;
     }
 
     // --- Network ---
