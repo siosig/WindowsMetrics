@@ -109,6 +109,16 @@ If `winget configure` isn't available in your environment, the same end state ca
 2. Extract it anywhere and run `WindowsMetrics.exe`. The zip contains just that one file, so you can put it in any folder and run it from there. It's self-contained; no .NET runtime install is required.
 3. Because the executable isn't code-signed, Windows SmartScreen may show an "unrecognized app" warning the first time you run it. Click **More info** → **Run anyway**. This is expected for an unsigned open-source binary — there's no code-signing certificate behind this project.
 
+### Option A2: Build the framework-dependent MSI installer
+
+`WindowsInstaller/` is a [WiX v5](https://wixtoolset.org/) project that packages a **framework-dependent** build (it needs the [.NET 11 Desktop Runtime x64](https://dotnet.microsoft.com/download/dotnet/11.0) installed; the MSI refuses to install without it). It installs per user to `%LOCALAPPDATA%\Programs\WindowsMetrics` (no administrator rights), adds a Start menu shortcut, and offers an optional "Start at logon" feature.
+
+```powershell
+pwsh ./Build-Installer.ps1   # -> artifacts/installer/WindowsMetrics-<version>-x64.msi
+```
+
+The MSI is unsigned, so SmartScreen may warn on first run.
+
 ### Option B: Build from source
 
 ```powershell

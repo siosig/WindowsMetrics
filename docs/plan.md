@@ -52,6 +52,14 @@
 
 これで `dotnet publish` の出力は `WindowsMetrics.exe` の 1 ファイルだけになる。
 
+## MSI インストーラ（framework-dependent）
+
+- `WindowsInstaller/`（WiX v5、`WindowsInstaller.wixproj`・`Package.wxs`）が、framework-dependent の publish 出力を per-user の MSI にまとめる。生成は `Build-Installer.ps1`（出力: `artifacts/installer/WindowsMetrics-<version>-x64.msi`）。
+- csproj の self-contained・単一ファイルの設定（上節）は変えない。スクリプトがコマンドラインで `PublishSelfContained=false`・`PublishSingleFile=false`・`PublishReadyToRun=false` を上書きし、`OutputPath` を `artifacts/build-fdd/` に分けて、実行中の exe による `bin/` のロックを避ける。
+- 前提確認: `WixToolset.Netfx.wixext` の `DotNetCompatibilityCheck`（desktop・x64・11.0.0）が満たされないと MSI は導入を拒否する。
+- 導入先は `%LOCALAPPDATA%\Programs\WindowsMetrics`（管理者権限不要）。ファイルがキーパスの per-user コンポーネントは ICE38・ICE64・ICE91 に触れるため、`SuppressIces` で意図的に抑止している。
+- 任意機能 `AutoStart` が HKCU の Run キーを書く。アンインストールで導入フォルダを削除する。
+
 ## アイコンの埋め込み
 
 `Assets\app.ico` は `EmbeddedResource`（`LogicalName="WindowsMetrics.Assets.app.ico"`）として exe に埋め込み、`AppIconResource.OpenStream()` で読む。トレイ（`new Icon(Stream)`）とウィンドウ（`BitmapFrame.Create(Stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad)`）の両方がこの経路を使う。`OnLoad` で読み込み時にデコードを終えるので、ストリームは `using` で閉じてよい。

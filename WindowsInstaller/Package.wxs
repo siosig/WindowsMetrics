@@ -1,0 +1,73 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="WindowsMetrics"
+           Manufacturer="WindowsMetrics"
+           Version="$(ProductVersion)"
+           UpgradeCode="6D0C4F52-3B7A-4E0E-9C55-2D1B8A6F7E31"
+           Scope="perUser"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of WindowsMetrics is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Block installation unless a compatible .NET 11 Desktop Runtime (x64) is present. -->
+    <netfx:DotNetCompatibilityCheck Id="DesktopRuntimeCheck"
+                                    Property="DESKTOP_RUNTIME_CHECK"
+                                    RollForward="latestMinor"
+                                    RuntimeType="desktop"
+                                    Platform="x64"
+                                    Version="11.0.0" />
+    <Launch Condition="Installed OR DESKTOP_RUNTIME_CHECK = 0"
+            Message="WindowsMetrics requires the .NET 11 Desktop Runtime (x64). Install it from https://dotnet.microsoft.com/download/dotnet/11.0 and run this installer again." />
+
+    <Icon Id="AppIcon.ico" SourceFile="..\WindowsMetrics\Assets\app.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="WindowsMetrics" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut" Guid="*">
+        <Shortcut Id="AppShortcut"
+                  Name="WindowsMetrics"
+                  Target="[INSTALLFOLDER]WindowsMetrics.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\WindowsMetrics" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- Optional: start WindowsMetrics at logon (per-user Run key). -->
+    <Component Id="AutoStartEntry" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="WindowsMetrics"
+                     Type="string" Value="&quot;[INSTALLFOLDER]WindowsMetrics.exe&quot;" KeyPath="yes" />
+    </Component>
+
+    <!-- All files from the framework-dependent publish output. -->
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(PublishDir)**" />
+    </ComponentGroup>
+
+    <!-- Removes files the app writes at runtime (logs/settings) under the install folder, if any. -->
+    <Component Id="CleanupInstallFolder" Directory="INSTALLFOLDER" Guid="*">
+      <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\WindowsMetrics" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Feature Id="Main" Title="WindowsMetrics" Level="1" AllowAdvertise="no">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="CleanupInstallFolder" />
+    </Feature>
+    <Feature Id="AutoStart" Title="Start at logon" Level="2" AllowAdvertise="no">
+      <ComponentRef Id="AutoStartEntry" />
+    </Feature>
+
+    <ui:WixUI Id="WixUI_FeatureTree" />
+  </Package>
+</Wix>
